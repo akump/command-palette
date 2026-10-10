@@ -7,10 +7,14 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
 import net.runelite.client.Notifier;
+import net.runelite.client.callback.ClientThread;
 
 /**
- * Timers started from the palette, each of which sends a notification when it runs out. They last only as long as
+ * Timers started from the palette, each of which sends a notification and a chat message when it runs out. They last only as long as
  * the client is open.
  */
 @Singleton
@@ -68,12 +72,16 @@ class Timers
 
 	private final ScheduledExecutorService executor;
 	private final Notifier notifier;
+	private final Client client;
+	private final ClientThread clientThread;
 	// started and cancelled on the Swing thread, finished on the executor's
 	private final List<Running> running = new CopyOnWriteArrayList<>();
 
 	@Inject
-	Timers(ScheduledExecutorService executor, Notifier notifier)
+	Timers(ScheduledExecutorService executor, Notifier notifier, Client client, ClientThread clientThread)
 	{
+		this.client = client;
+		this.clientThread = clientThread;
 		this.executor = executor;
 		this.notifier = notifier;
 	}
@@ -112,9 +120,19 @@ class Timers
 			// not if it was cancelled just as it ran out
 			if (running.remove(timer))
 			{
-				notifier.notify(request.getLabel().isEmpty()
+				final String message = request.getLabel().isEmpty()
 					? "Your " + Durations.format(request.getSeconds()) + " timer is done"
-					: "Timer done: " + request.getLabel());
+					: "Timer done: " + request.getLabel();
+				// RuneLite's notifications are, as they come, only sent while the client isn't being used, so
+				// the chat is told too
+				notifier.notify(message);
+				clientThread.invoke(() ->
+				{
+					if (client.getGameState() == GameState.LOGGED_IN)
+					{
+						client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+					}
+				});
 			}
 		}, millis, TimeUnit.MILLISECONDS);
 	}

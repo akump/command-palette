@@ -69,10 +69,12 @@ These are made from what you type, so they aren't in the list until you do.
 
 | Type | What it does |
 | --- | --- |
-| `timer 5m herb run` | Starts a timer that sends a RuneLite notification, "Timer done: herb run", when it runs out. The words after the time can be left out, and a number on its own is in minutes. |
+| `timer 5m herb run` | Starts a timer that says "Timer done: herb run" in chat when it runs out, and sends a RuneLite notification. The words after the time can be left out, and a number on its own is in minutes. |
 | Cancel 5m timer: herb run | Listed while that timer is running, with the time left |
 
-Timers go up to a day and are lost when the client closes.
+Timers go up to a day and are lost when the client closes. RuneLite's notifications are, unless you have changed
+its settings, only sent while the client isn't the window in use; the chat message is there either way when you
+are logged in.
 
 ### World hopping
 
