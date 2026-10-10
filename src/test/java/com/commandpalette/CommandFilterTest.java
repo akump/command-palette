@@ -69,8 +69,8 @@ public class CommandFilterTest
 			new Command("panel:Loot Tracker", "Loot Tracker", "Open panel", null, () -> {}),
 			new Command("plugin:Loot Tracker", "Loot Tracker", "Turn plugin off", null, () -> {}),
 			new Command("plugin:World Hopper", "World Hopper", "Turn plugin off", null, () -> {}),
-			new Command("world:302", "World 302", "Hop - Members", null, () -> {}),
-			new Command("world:330", "World 330", "Hop - Members - House Party", null, () -> {}));
+			new Command("world:302", "World 302", "Members", null, () -> {}),
+			new Command("world:330", "World 330", "Members - House Party", null, () -> {}));
 		return CommandFilter.filter(commands, query).stream()
 			.map(c -> c.getTitle() + " / " + c.getDetail())
 			.collect(Collectors.toList());
@@ -84,9 +84,9 @@ public class CommandFilterTest
 		assertEquals(Arrays.asList(), titles("#world"));
 		assertEquals(Arrays.asList("Loot Tracker / Turn plugin off", "World Hopper / Turn plugin off"), titles(">"));
 		assertEquals(Arrays.asList("Loot Tracker / Turn plugin off"), titles("> loot"));
-		assertEquals(Arrays.asList("World 302 / Hop - Members", "World 330 / Hop - Members - House Party"), titles("@"));
-		assertEquals(Arrays.asList("World 330 / Hop - Members - House Party"), titles("@party"));
-		assertEquals(Arrays.asList("World 302 / Hop - Members"), titles(" @ 302"));
+		assertEquals(Arrays.asList("World 302 / Members", "World 330 / Members - House Party"), titles("@"));
+		assertEquals(Arrays.asList("World 330 / Members - House Party"), titles("@party"));
+		assertEquals(Arrays.asList("World 302 / Members"), titles(" @ 302"));
 	}
 
 	@Test
@@ -98,7 +98,7 @@ public class CommandFilterTest
 	@Test
 	public void withoutAPrefixEveryKindIsSearched()
 	{
-		assertEquals(Arrays.asList("World Hopper / Turn plugin off", "World 302 / Hop - Members",
-			"World 330 / Hop - Members - House Party"), titles("world"));
+		assertEquals(Arrays.asList("World Hopper / Turn plugin off", "World 302 / Members",
+			"World 330 / Members - House Party"), titles("world"));
 	}
 }

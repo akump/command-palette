@@ -52,8 +52,8 @@ public class PalettePreviewTest
 		commands.add(new Command("Loot Tracker", "Turn plugin off", Icons.SWITCH_ON, () -> {}));
 		commands.add(new Command("Twitch", "Turn plugin on", Icons.SWITCH_OFF, () -> {}));
 		commands.add(new Command("Loot Tracker", "Open settings", Icons.COG, () -> {}));
-		commands.add(new Command("World 330", "Hop favourite - Members - House Party", Icons.STAR, () -> {}));
-		commands.add(new Command("World 302", "Hop - Members", Icons.GLOBE, () -> {}));
+		commands.add(new Command("World 330", "Favourite - Members - House Party", Icons.STAR, () -> {}));
+		commands.add(new Command("World 302", "Members", Icons.GLOBE, () -> {}));
 		commands.add(new Command("= 8,333.33", "Copy", Icons.EQUALS, () -> {}));
 		commands.add(new Command("Rune platebody", "Price and alch value", Icons.of(icon(7).getImage()), () -> {}));
 		commands.add(new Command("No icon at all", "", null, () -> {}));

@@ -88,10 +88,10 @@ public class DemoGifTest
 		{
 			commands.add(command(PluginCommands.SETTINGS_KIND + plugin, plugin, "Open settings", Icons.COG));
 		}
-		commands.add(command(WorldCommands.KIND + 301, "World 301", "Hop - Free - Trade", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 302, "World 302", "Hop - Members - Trade", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 307, "World 307", "Hop - Members - Wintertodt", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 309, "World 309", "Hop - Members - Wintertodt", Icons.GLOBE));
+		commands.add(command(WorldCommands.KIND + 301, "World 301", "Free - Trade", Icons.GLOBE));
+		commands.add(command(WorldCommands.KIND + 302, "World 302", "Members - Trade", Icons.GLOBE));
+		commands.add(command(WorldCommands.KIND + 307, "World 307", "Members - Wintertodt", Icons.GLOBE));
+		commands.add(command(WorldCommands.KIND + 309, "World 309", "Members - Wintertodt", Icons.GLOBE));
 		commands.add(command("help", "Help", "What to type", Icons.HELP));
 		return commands;
 	}
@@ -234,7 +234,7 @@ public class DemoGifTest
 		type("loot");
 		press(KeyEvent.VK_DOWN, 2);
 		clear();
-		type("hop wint");
+		type("wintertodt");
 		clear();
 		type(">scr");
 		clear();

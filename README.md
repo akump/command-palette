@@ -2,7 +2,7 @@
 
 A keyboard-driven list of commands for RuneLite. Press a hotkey, type a few letters, press `Enter`.
 
-<img src="docs/demo.gif" alt="Typing into the palette: finding a panel, hopping worlds, a plugin's settings, a sum, the tax on a sale, a timer, xp to a level and a wiki search" width="361">
+<img src="docs/demo.gif" alt="Typing into the palette: finding a panel, looking up worlds, a plugin's settings, a sum, the tax on a sale, a timer, xp to a level and a wiki search" width="361">
 
 ## Using it
 
@@ -76,14 +76,15 @@ Timers go up to a day and are lost when the client closes. RuneLite's notificati
 its settings, only sent while the client isn't the window in use; the chat message is there either way when you
 are logged in.
 
-### World hopping
+### Worlds
 
 | Command | What it does |
 | --- | --- |
-| World *number* - Hop | Hops to that world, as the World Hopper plugin does; on the login screen it changes the selected world. Type `world 302`, or part of an activity such as `hop wintertodt`. |
+| World *number* | Looks up a world: type `world 302`, or part of an activity such as `wintertodt`, to see whether it is a members' world and what it is for. Running one opens the World Hopper plugin's panel, World Switcher, where you click the world to hop. |
 
-The worlds you have made favourites in the World Hopper plugin's panel come first, with a star, and `favourite`
-finds just those. PvP, high risk, Deadman and beta worlds aren't listed.
+The palette doesn't hop itself; Plugin Hub plugins may only hop from a button in a side panel. The worlds you have
+made favourites in the World Hopper plugin's panel come first, with a star, and `favourite` finds just those. The
+world you are on says `Current`. PvP, high risk, Deadman and beta worlds aren't listed.
 
 ### Plugins
 
@@ -103,7 +104,7 @@ turn it on from the Configuration panel, which asks before turning the other one
 | Search the wiki for "..." | Always listed last once you have typed something; opens the OSRS Wiki's search for it in your browser |
 | Help | Shows the commands that are turned on, with an example of each. The **Help** section of the settings points to it. |
 
-<img src="docs/help.png" alt="The help window, listing the commands and the symbols that narrow the list" width="467">
+<img src="docs/help.png" alt="The help window, listing the commands and the symbols that narrow the list" width="502">
 
 ## Finding a command
 

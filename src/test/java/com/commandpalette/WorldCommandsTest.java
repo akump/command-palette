@@ -29,8 +29,11 @@ public class WorldCommandsTest
 	@Test
 	public void detailSaysWhatKindOfWorldItIs()
 	{
-		assertEquals("Hop - Free", WorldCommands.detail(world(301, "-"), false));
-		assertEquals("Hop - Members - Wintertodt", WorldCommands.detail(world(309, "Wintertodt", WorldType.MEMBERS), false));
-		assertEquals("Hop favourite - Members", WorldCommands.detail(world(302, "", WorldType.MEMBERS), true));
+		assertEquals("Free", WorldCommands.detail(world(301, "-"), false, false));
+		assertEquals("Members - Wintertodt",
+			WorldCommands.detail(world(309, "Wintertodt", WorldType.MEMBERS), false, false));
+		assertEquals("Favourite - Members", WorldCommands.detail(world(302, "", WorldType.MEMBERS), true, false));
+		assertEquals("Current - Favourite - Members",
+			WorldCommands.detail(world(302, "", WorldType.MEMBERS), true, true));
 	}
 }

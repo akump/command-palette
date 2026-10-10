@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 @PluginDescriptor(
 	name = "Command Palette",
-	description = "A hotkey-driven, searchable list of commands: jump to any side panel, hop worlds, open plugin settings",
+	description = "A hotkey-driven, searchable list of commands: jump to any side panel, look up worlds, open plugin settings",
 	tags = {"command", "palette", "sidebar", "panel", "hotkey", "keyboard", "search", "navigation"}
 )
 public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, PalettePanel.Listener
@@ -94,8 +94,6 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		// Not the KeyManager: that only hears keys pressed on the game, and the palette should also open from a
 		// side panel, and close from its own search field
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
-		// a hop takes a few game ticks to carry out
-		eventBus.register(worldCommands);
 		eventBus.register(sessionCommands);
 	}
 
@@ -114,9 +112,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	protected void shutDown()
 	{
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(this);
-		eventBus.unregister(worldCommands);
 		eventBus.unregister(sessionCommands);
-		worldCommands.reset();
 		sessionCommands.reset();
 		timers.reset();
 		SwingUtilities.invokeLater(() ->
@@ -215,7 +211,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		}
 		if (config.worldCommands())
 		{
-			worldCommands.collect(commands);
+			worldCommands.collect(commands, () -> sidebarCommands.open(frame, WorldCommands.SWITCHER_PANEL));
 		}
 
 		if (dialog == null)

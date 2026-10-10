@@ -64,4 +64,20 @@ class SidebarCommands
 			out.add(new Command(SIDEBAR_KIND + "toggle", sidebar.isVisible() ? "Hide sidebar" : "Show sidebar", "", Icons.SIDEBAR, () -> toggle.doClick(0)));
 		}
 	}
+
+	/**
+	 * Opens the side panel of that name, if there is one.
+	 */
+	void open(Container window, String name)
+	{
+		final JTabbedPane sidebar = Sidebar.find(window);
+		for (int i = 0; sidebar != null && i < sidebar.getTabCount(); i++)
+		{
+			if (name.equals(sidebar.getToolTipTextAt(i)))
+			{
+				Sidebar.open(window, sidebar, sidebar.getComponentAt(i), onForcedOpen);
+				return;
+			}
+		}
+	}
 }

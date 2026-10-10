@@ -76,7 +76,7 @@ class HelpCommand
 		}
 		if (config.worldCommands())
 		{
-			commands.row("world 302", "Hop to that world; World Hopper favourites come first");
+			commands.row("world 302, wintertodt", "Look up a world; Enter opens the World Switcher");
 		}
 		if (config.lookupCommands())
 		{
@@ -105,7 +105,7 @@ class HelpCommand
 
 		final Section tips = new Section("Tips");
 		tips.note("The words on the right of each row are searchable: try <b>panel</b>,"
-			+ " <b>plugin</b> or <b>hop</b>.");
+			+ " <b>plugin</b> or <b>favourite</b>.");
 		if (config.recentFirst())
 		{
 			tips.note("The commands you ran last are listed first, above a line.");

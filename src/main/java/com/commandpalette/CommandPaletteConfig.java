@@ -179,8 +179,9 @@ public interface CommandPaletteConfig extends Config
 
 	@ConfigItem(
 		keyName = "worldCommands",
-		name = "World hopping",
-		description = "List every world, to hop to it, the World Hopper plugin's favourites first."
+		name = "Worlds",
+		description = "List every world, to look one up by its number or activity, the World Hopper plugin's"
+			+ " favourites first. Running one opens the World Switcher panel; it doesn't hop."
 			+ " PvP, high risk and Deadman worlds are left out.",
 		section = commandsSection,
 		position = 7
