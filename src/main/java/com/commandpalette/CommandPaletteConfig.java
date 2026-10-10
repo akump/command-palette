@@ -1,13 +1,12 @@
 package com.commandpalette;
 
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Keybind;
-import net.runelite.client.util.OSType;
+import net.runelite.client.config.Range;
 
 @ConfigGroup(CommandPaletteConfig.GROUP)
 public interface CommandPaletteConfig extends Config
@@ -21,35 +20,68 @@ public interface CommandPaletteConfig extends Config
 	)
 	String commandsSection = "commands";
 
+	@ConfigSection(
+		name = "Help",
+		description = "How to find out what the palette can do",
+		position = 20
+	)
+	String helpSection = "help";
+
 	@ConfigItem(
 		keyName = "hotkey",
 		name = "Open hotkey",
-		description = "Opens the command palette (Cmd+P on Mac and Ctrl+P elsewhere, unless changed). Type to filter, Up/Down to move, Enter to run the selected command,"
-			+ " Esc or the hotkey again to cancel.",
+		description = "Opens the command palette. Only the key is used; the modifier comes from the next setting."
+			+ " Type to filter, Up/Down to move, Enter to run the selected command, Esc or the hotkey again to cancel.",
 		position = 0
 	)
 	default Keybind hotkey()
 	{
-		return new Keybind(KeyEvent.VK_P,
-			OSType.getOSType() == OSType.MacOS ? InputEvent.META_DOWN_MASK : InputEvent.CTRL_DOWN_MASK);
+		return new Keybind(KeyEvent.VK_P, 0);
+	}
+
+	@ConfigItem(
+		keyName = "requireModifier",
+		name = "Require Ctrl/Cmd",
+		description = "Require the platform modifier (Cmd on Mac, Ctrl on Windows) together with the open hotkey."
+			+ " Follows the Platform Keys plugin's key profile when that plugin is on.",
+		position = 1
+	)
+	default boolean requireModifier()
+	{
+		return true;
 	}
 
 	@ConfigItem(
 		keyName = "recentFirst",
 		name = "Recently used first",
-		description = "List the last few commands you ran before the rest, latest first",
-		position = 1
+		description = "List the last few commands you ran in a section of their own before the rest, latest first",
+		position = 2
 	)
 	default boolean recentFirst()
 	{
 		return true;
 	}
 
+	@Range(
+		min = 1,
+		max = RecentCommands.MAX
+	)
+	@ConfigItem(
+		keyName = "recentCount",
+		name = "Recently used count",
+		description = "How many recently used commands to list first",
+		position = 3
+	)
+	default int recentCount()
+	{
+		return 8;
+	}
+
 	@ConfigItem(
 		keyName = "showIcons",
 		name = "Show icons",
-		description = "Show an icon before each command's name",
-		position = 2
+		description = "Show an icon before each command's name, and a clock after a recently used one",
+		position = 4
 	)
 	default boolean showIcons()
 	{
@@ -84,7 +116,8 @@ public interface CommandPaletteConfig extends Config
 	@ConfigItem(
 		keyName = "lookupCommands",
 		name = "Lookups and sums",
-		description = "Work out a sum such as 35m / 4.2k or the odds of a dry streak with \"dry 1/512 600\","
+		description = "Work out a sum such as 35m / 4.2k, the odds of a dry streak with \"dry 1/512 600\","
+			+ " the Grand Exchange's tax with \"tax 12m\" or game ticks as time with \"ticks 250\","
 			+ " and when logged in look up an item with \"alch rune platebody\""
 			+ " or the xp left to a level with \"xp 92 slayer\"",
 		section = commandsSection,
@@ -117,7 +150,7 @@ public interface CommandPaletteConfig extends Config
 	)
 	default boolean pluginCommands()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -147,12 +180,38 @@ public interface CommandPaletteConfig extends Config
 	@ConfigItem(
 		keyName = "worldCommands",
 		name = "World hopping",
-		description = "List every world, to hop to it. PvP, high risk and Deadman worlds are left out.",
+		description = "List every world, to hop to it, the World Hopper plugin's favourites first."
+			+ " PvP, high risk and Deadman worlds are left out.",
 		section = commandsSection,
 		position = 7
 	)
 	default boolean worldCommands()
 	{
 		return true;
+	}
+
+	@ConfigItem(
+		keyName = "timerCommands",
+		name = "Timers",
+		description = "Start a timer with \"timer 5m herb run\", which sends a notification when it runs out."
+			+ " A timer that is running can be cancelled whether or not this is on.",
+		section = commandsSection,
+		position = 8
+	)
+	default boolean timerCommands()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "help",
+		name = "Help command",
+		description = "Where to find what can be typed into the palette",
+		section = helpSection,
+		position = 0
+	)
+	default String help()
+	{
+		return "Open the palette, type help and press Enter. The Help command lists every command.";
 	}
 }

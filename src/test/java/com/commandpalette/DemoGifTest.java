@@ -92,14 +92,11 @@ public class DemoGifTest
 		commands.add(command(WorldCommands.KIND + 302, "World 302", "Hop - Members - Trade", Icons.GLOBE));
 		commands.add(command(WorldCommands.KIND + 307, "World 307", "Hop - Members - Wintertodt", Icons.GLOBE));
 		commands.add(command(WorldCommands.KIND + 309, "World 309", "Hop - Members - Wintertodt", Icons.GLOBE));
-		commands.add(command("help", "Help", "Keys and commands", Icons.HELP));
-		commands.add(command(PluginCommands.KIND + "Loot Tracker", "Loot Tracker", "Turn plugin off", Icons.SWITCH_ON));
-		commands.add(command(PluginCommands.KIND + "Screen Markers", "Screen Markers", "Turn plugin off", Icons.SWITCH_ON));
-		commands.add(command(PluginCommands.KIND + "Twitch", "Twitch", "Turn plugin on", Icons.SWITCH_OFF));
+		commands.add(command("help", "Help", "What to type", Icons.HELP));
 		return commands;
 	}
 
-	// the sum and the wiki search are the plugin's own; the xp needs a logged in client, so it is worked out here
+	// the sum, the tax, the timer and the wiki search are the plugin's own; the xp needs a logged in client, so it is worked out here
 	private static List<Command> forQuery(String typed, Icon slayer)
 	{
 		final Query query = Query.parse(typed);
@@ -117,6 +114,15 @@ public class DemoGifTest
 		if (value != null)
 		{
 			commands.add(new Command("= " + Calculator.format(value), "Copy", Icons.EQUALS, () -> {}));
+		}
+		if (query.getText().startsWith("tax ") && GeTax.describe(query.getText().substring(4)) != null)
+		{
+			commands.add(new Command(GeTax.describe(query.getText().substring(4)), "Copy", Icons.EQUALS, () -> {}));
+		}
+		if (query.getText().startsWith("timer ") && Timers.parse(query.getText().substring(6)) != null)
+		{
+			commands.add(new Command("Start " + Timers.parse(query.getText().substring(6)).describe(),
+				"Notify when done", Icons.TIMER, () -> {}));
 		}
 		if (query.getText().equalsIgnoreCase("xp 92 slayer"))
 		{
@@ -213,7 +219,7 @@ public class DemoGifTest
 			{
 			}
 		});
-		panel.show(commands, typed -> forQuery(typed, slayer), true);
+		panel.show(List.of(), commands, typed -> forQuery(typed, slayer), true);
 		window = new JWindow();
 		window.setContentPane(panel);
 		window.pack();
@@ -233,6 +239,10 @@ public class DemoGifTest
 		type(">scr");
 		clear();
 		type("35m / 4.2k");
+		clear();
+		type("tax 12m");
+		clear();
+		type("timer 5m herb run");
 		clear();
 		type("xp 92 slayer");
 		clear();

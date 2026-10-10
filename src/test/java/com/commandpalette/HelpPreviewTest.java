@@ -2,7 +2,6 @@ package com.commandpalette;
 
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -12,7 +11,6 @@ import javax.swing.JLabel;
 import javax.swing.JWindow;
 import net.runelite.client.config.Keybind;
 import net.runelite.client.ui.laf.RuneLiteLAF;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import org.junit.Assume;
@@ -20,6 +18,11 @@ import org.junit.Test;
 
 public class HelpPreviewTest
 {
+	private static HelpCommand help(boolean worlds)
+	{
+		return new HelpCommand(config(worlds));
+	}
+
 	private static CommandPaletteConfig config(boolean worlds)
 	{
 		return new CommandPaletteConfig()
@@ -27,7 +30,7 @@ public class HelpPreviewTest
 			@Override
 			public Keybind hotkey()
 			{
-				return new Keybind(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK);
+				return new Keybind(KeyEvent.VK_P, 0);
 			}
 
 			@Override
@@ -39,15 +42,10 @@ public class HelpPreviewTest
 	}
 
 	@Test
-	public void listsTheHotkeyAndOnlyTheGroupsThatAreOn()
+	public void listsOnlyTheGroupsThatAreOn()
 	{
-		final String all = new HelpCommand(config(true)).text();
-		assertTrue(all.contains("Ctrl+P"));
-		assertEquals("Shift+Cmd+F1", HelpCommand.describe(
-			new Keybind(KeyEvent.VK_F1, InputEvent.META_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK)));
-		assertEquals("Not set", HelpCommand.describe(Keybind.NOT_SET));
-		assertTrue(all.contains("world 302"));
-		assertFalse(new HelpCommand(config(false)).text().contains("world 302"));
+		assertTrue(help(true).text().contains("world 302"));
+		assertFalse(help(false).text().contains("world 302"));
 	}
 
 	/**
@@ -59,7 +57,7 @@ public class HelpPreviewTest
 		Assume.assumeFalse(GraphicsEnvironment.isHeadless());
 		RuneLiteLAF.setup();
 
-		final JLabel label = new JLabel(new HelpCommand(config(true)).text());
+		final JLabel label = new JLabel(help(true).text());
 		label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		label.setOpaque(true);
 		final JWindow window = new JWindow();

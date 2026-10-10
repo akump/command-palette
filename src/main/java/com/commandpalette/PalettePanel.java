@@ -8,6 +8,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -22,6 +23,7 @@ import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import net.runelite.client.ui.ColorScheme;
@@ -47,6 +49,12 @@ class PalettePanel extends JPanel
 	private static final int WIDTH = 320;
 	private static final int ROW_HEIGHT = 24;
 	private static final int MAX_ROWS = 12;
+
+	private static final Border ROW_BORDER = BorderFactory.createEmptyBorder(0, 6, 0, 6);
+	// a line above the first row of a section
+	private static final Border SECTION_BORDER = BorderFactory.createCompoundBorder(
+		BorderFactory.createMatteBorder(1, 0, 0, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+		BorderFactory.createEmptyBorder(0, 6, 1, 6));
 
 	private static final Icon NO_ICON = new Icon()
 	{
@@ -75,7 +83,10 @@ class PalettePanel extends JPanel
 	private final JScrollPane scroll = new JScrollPane(list);
 	private final JLabel empty = new JLabel("No matching commands", SwingConstants.CENTER);
 
+	private List<Command> recent = Collections.emptyList();
 	private List<Command> commands = Collections.emptyList();
+	// the row that starts the commands after the recently used ones, when the list is in those two sections
+	private int firstOfRest = -1;
 	private boolean showIcons = true;
 	private Function<String, List<Command>> forQuery = query -> Collections.emptyList();
 
@@ -167,13 +178,17 @@ class PalettePanel extends JPanel
 	/**
 	 * Start over with these commands and an empty search.
 	 *
+	 * @param recent    the recently used commands, which are listed first and set apart from the rest
+	 * @param rest      every other command
 	 * @param forQuery  further commands made from the text typed, listed after the ones matching it
 	 * @param showIcons whether each command's icon is drawn before its name
 	 */
-	void show(List<Command> commands, Function<String, List<Command>> forQuery, boolean showIcons)
+	void show(List<Command> recent, List<Command> rest, Function<String, List<Command>> forQuery, boolean showIcons)
 	{
 		this.showIcons = showIcons;
-		this.commands = commands;
+		this.recent = recent;
+		this.commands = new ArrayList<>(recent);
+		this.commands.addAll(rest);
 		this.forQuery = forQuery;
 		if (search.getText().isEmpty())
 		{
@@ -206,6 +221,9 @@ class PalettePanel extends JPanel
 		{
 			model.addElement(command);
 		}
+		// a search puts the best matches first, wherever they came from
+		firstOfRest = search.getText().isEmpty() && !recent.isEmpty() && model.size() > recent.size()
+			? recent.size() : -1;
 		list.setVisibleRowCount(Math.min(model.size(), MAX_ROWS));
 		scroll.setVisible(!model.isEmpty());
 		empty.setVisible(model.isEmpty());
@@ -279,9 +297,11 @@ class PalettePanel extends JPanel
 		private Row()
 		{
 			setLayout(new BorderLayout(6, 0));
-			setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
 
 			title.setIconTextGap(6);
+			// the clock of a recently used command goes after its detail, at the row's edge
+			detail.setHorizontalTextPosition(SwingConstants.LEFT);
+			detail.setIconTextGap(6);
 			detail.setFont(FontManager.getRunescapeSmallFont());
 			detail.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 
@@ -298,6 +318,8 @@ class PalettePanel extends JPanel
 			title.setIcon(!showIcons ? null : command.getIcon() == null ? NO_ICON : command.getIcon());
 			title.setForeground(selected ? ColorScheme.BRAND_ORANGE : ColorScheme.TEXT_COLOR);
 			detail.setText(command.getDetail());
+			detail.setIcon(showIcons && recent.contains(command) ? Icons.RECENT : null);
+			setBorder(index == firstOfRest ? SECTION_BORDER : ROW_BORDER);
 			setBackground(selected ? ColorScheme.DARKER_GRAY_HOVER_COLOR : ColorScheme.DARKER_GRAY_COLOR);
 			return this;
 		}

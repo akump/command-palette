@@ -48,10 +48,11 @@ public class PalettePreviewTest
 		commands.add(new Command("Session summary", "Show in chat", Icons.CLOCK, () -> {}));
 		commands.add(new Command("Open my hiscores", "Official", Icons.LINK, () -> {}));
 		commands.add(new Command("Open logs folder", "", Icons.FOLDER, () -> {}));
-		commands.add(new Command("Help", "Keys and commands", Icons.HELP, () -> {}));
+		commands.add(new Command("Help", "What to type", Icons.HELP, () -> {}));
 		commands.add(new Command("Loot Tracker", "Turn plugin off", Icons.SWITCH_ON, () -> {}));
 		commands.add(new Command("Twitch", "Turn plugin on", Icons.SWITCH_OFF, () -> {}));
 		commands.add(new Command("Loot Tracker", "Open settings", Icons.COG, () -> {}));
+		commands.add(new Command("World 330", "Hop favourite - Members - House Party", Icons.STAR, () -> {}));
 		commands.add(new Command("World 302", "Hop - Members", Icons.GLOBE, () -> {}));
 		commands.add(new Command("= 8,333.33", "Copy", Icons.EQUALS, () -> {}));
 		commands.add(new Command("Rune platebody", "Price and alch value", Icons.of(icon(7).getImage()), () -> {}));
@@ -60,6 +61,11 @@ public class PalettePreviewTest
 	}
 
 	private static BufferedImage render(List<Command> commands, String query, boolean showIcons)
+	{
+		return render(List.of(), commands, query, showIcons);
+	}
+
+	private static BufferedImage render(List<Command> recent, List<Command> commands, String query, boolean showIcons)
 	{
 		final PalettePanel panel = new PalettePanel(new PalettePanel.Listener()
 		{
@@ -78,7 +84,7 @@ public class PalettePreviewTest
 			{
 			}
 		});
-		panel.show(commands, typed -> TypedCommands.wikiSearch(Query.parse(typed).getText()), showIcons);
+		panel.show(recent, commands, typed -> TypedCommands.wikiSearch(Query.parse(typed).getText()), showIcons);
 		panel.getSearch().setText(query);
 
 		// Swing only lays out the rows of a list that belongs to a window, which needn't be shown
@@ -101,7 +107,8 @@ public class PalettePreviewTest
 
 		// the list shows twelve rows at a time
 		final List<Command> commands = commands();
-		final BufferedImage all = render(commands.subList(0, 12), "", true);
+		// the first three as the recently used ones
+		final BufferedImage all = render(commands.subList(0, 3), commands.subList(3, 12), "", true);
 		final BufferedImage filtered = render(commands.subList(12, commands.size()), "", true);
 		final BufferedImage none = render(commands.subList(0, 6), "", false);
 

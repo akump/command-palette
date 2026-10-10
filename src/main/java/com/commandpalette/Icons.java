@@ -9,6 +9,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
@@ -69,6 +70,31 @@ enum Icons implements Icon
 				g.draw(new Ellipse2D.Double(8, 8, 48, 48));
 				line(g, 32, 32, 32, 18);
 				line(g, 32, 32, 42, 39);
+			}
+		},
+	TIMER
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a stopwatch
+				g.draw(new Ellipse2D.Double(11, 16, 42, 42));
+				line(g, 25, 6, 39, 6);
+				line(g, 32, 6, 32, 16);
+				line(g, 32, 37, 40, 28);
+			}
+		},
+	RECENT
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a clock face wound back: open at the upper left, with an arrowhead on that end
+				g.draw(new Arc2D.Double(10, 10, 44, 44, 150, -300, Arc2D.OPEN));
+				line(g, 13, 21, 26, 16);
+				line(g, 13, 21, 11, 7);
+				line(g, 32, 32, 32, 21);
+				line(g, 32, 32, 40, 37);
 			}
 		},
 	LINK
@@ -165,6 +191,26 @@ enum Icons implements Icon
 				line(g, 8, 32, 56, 32);
 				line(g, 13, 20, 51, 20);
 				line(g, 13, 44, 51, 44);
+			}
+		},
+	STAR
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				final Path2D star = new Path2D.Double();
+				star.moveTo(32, 9);
+				star.lineTo(38, 25);
+				star.lineTo(56, 26);
+				star.lineTo(42, 37);
+				star.lineTo(47, 54);
+				star.lineTo(32, 45);
+				star.lineTo(17, 54);
+				star.lineTo(22, 37);
+				star.lineTo(8, 26);
+				star.lineTo(26, 25);
+				star.closePath();
+				g.draw(star);
 			}
 		},
 	DICE

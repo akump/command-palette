@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
@@ -27,15 +28,17 @@ import net.runelite.client.util.QuantityFormatter;
 import net.runelite.http.api.item.ItemPrice;
 
 /**
- * Commands made from what was typed rather than found by it: a sum, the odds of a dry streak, an item to price,
- * a level to reach, and
- * failing all else a wiki search.
+ * Commands made from what was typed rather than found by it: a sum, the odds of a dry streak, the tax on a sale,
+ * ticks as time, a timer to start, an item to price, a level to reach, and failing all else a wiki search.
  */
 class TypedCommands
 {
 	private static final String WIKI_SEARCH = "https://oldschool.runescape.wiki/?utm_source=runelite&search=";
 	private static final Pattern ITEM = Pattern.compile("(?:alch|price)\\s+(.+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern DRY = Pattern.compile("dry\\s+(.+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern TAX = Pattern.compile("tax\\s+(.+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern TICKS = Pattern.compile("ticks?\\s+(.+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern TIMER = Pattern.compile("timer\\s+(.+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern XP = Pattern.compile("xp\\s+(.+)", Pattern.CASE_INSENSITIVE);
 	private static final int MAX_ITEMS = 5;
 
@@ -44,13 +47,15 @@ class TypedCommands
 	private final ItemManager itemManager;
 	private final SkillIconManager skillIconManager;
 	private final CommandPaletteConfig config;
+	private final Timers timers;
 
 	private Runnable onIconLoaded = () -> {};
 
 	@Inject
 	TypedCommands(Client client, ClientThread clientThread, ItemManager itemManager, SkillIconManager skillIconManager,
-		CommandPaletteConfig config)
+		CommandPaletteConfig config, Timers timers)
 	{
+		this.timers = timers;
 		this.client = client;
 		this.clientThread = clientThread;
 		this.itemManager = itemManager;
@@ -83,11 +88,17 @@ class TypedCommands
 		{
 			calculation(query.getText(), commands);
 			dryStreak(query.getText(), commands);
+			answer(TAX, query.getText(), GeTax::describe, Icons.EQUALS, commands);
+			answer(TICKS, query.getText(), Durations::convertTicks, Icons.TIMER, commands);
 			if (client.getGameState() == GameState.LOGGED_IN)
 			{
 				items(query.getText(), commands);
 				xpToLevel(query.getText(), commands);
 			}
+		}
+		if (config.timerCommands())
+		{
+			timer(query.getText(), commands);
 		}
 		if (config.wikiSearch())
 		{
@@ -130,6 +141,39 @@ class TypedCommands
 			out.add(copying(streak.describeDry(), Icons.DICE));
 		}
 		out.add(copying(streak.describeMilestones(), Icons.DICE));
+	}
+
+	// for a keyword followed by something the function can answer
+	private static void answer(Pattern pattern, String text, Function<String, String> function, Icon icon,
+		List<Command> out)
+	{
+		final Matcher matcher = pattern.matcher(text);
+		final String answer = matcher.matches() ? function.apply(matcher.group(1)) : null;
+		if (answer != null)
+		{
+			out.add(copying(answer, icon));
+		}
+	}
+
+	private void timer(String text, List<Command> out)
+	{
+		final Matcher matcher = TIMER.matcher(text);
+		final Timers.Request request = matcher.matches() ? Timers.parse(matcher.group(1)) : null;
+		if (request == null)
+		{
+			return;
+		}
+		out.add(new Command("Start " + request.describe(), "Notify when done", Icons.TIMER, () ->
+		{
+			timers.start(request);
+			clientThread.invoke(() ->
+			{
+				if (client.getGameState() == GameState.LOGGED_IN)
+				{
+					say("Started " + request.describe());
+				}
+			});
+		}));
 	}
 
 	// a command that is its own answer, and copies it

@@ -38,7 +38,7 @@ public class PalettePanelTest
 		{
 			commands.add(new Command("Panel " + i, "Open panel", null, () -> {}));
 		}
-		panel.show(commands, query -> TypedCommands.wikiSearch(Query.parse(query).getText()), true);
+		panel.show(List.of(), commands, query -> TypedCommands.wikiSearch(Query.parse(query).getText()), true);
 	}
 
 	// Key events dispatched to a field that isn't on screen go nowhere, so hand them to its listeners directly
@@ -128,5 +128,17 @@ public class PalettePanelTest
 		show(3);
 		press(KeyEvent.VK_ENTER, 0);
 		assertEquals(List.of("run Panel 1"), events);
+	}
+
+	@Test
+	public void recentCommandsComeFirstAndASearchRanksThemWithTheRest()
+	{
+		final Command recent = new Command("Panel 9", "Open panel", null, () -> {});
+		final Command rest = new Command("Panel 1", "Open panel", null, () -> {});
+		panel.show(List.of(recent), List.of(rest), query -> List.of(), true);
+		press(KeyEvent.VK_ENTER, 0);
+		panel.getSearch().setText("panel 1");
+		press(KeyEvent.VK_ENTER, 0);
+		assertEquals(List.of("run Panel 9", "run Panel 1"), events);
 	}
 }

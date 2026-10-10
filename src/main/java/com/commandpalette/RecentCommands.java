@@ -12,7 +12,8 @@ import net.runelite.client.config.ConfigManager;
  */
 class RecentCommands
 {
-	static final int MAX = 8;
+	// as many as the setting for how many to list goes up to, so that raising it brings older ones back
+	static final int MAX = 20;
 
 	private static final String CONFIG_KEY = "recent";
 	private static final String SEPARATOR = "\n";
@@ -52,24 +53,26 @@ class RecentCommands
 	}
 
 	/**
-	 * The commands with the recently run ones moved to the front, latest first, and the rest as they were.
+	 * The recently run ones of the commands, latest first and no more than the limit.
 	 */
-	static List<Command> recentFirst(List<Command> commands, List<String> recent)
+	static List<Command> pick(List<Command> commands, List<String> recent, int limit)
 	{
-		final List<Command> rest = new ArrayList<>(commands);
-		final List<Command> ordered = new ArrayList<>(commands.size());
+		final List<Command> picked = new ArrayList<>();
 		for (String key : recent)
 		{
-			for (int i = 0; i < rest.size(); i++)
+			if (picked.size() >= limit)
 			{
-				if (key.equals(rest.get(i).getKey()))
+				break;
+			}
+			for (Command command : commands)
+			{
+				if (key.equals(command.getKey()))
 				{
-					ordered.add(rest.remove(i));
+					picked.add(command);
 					break;
 				}
 			}
 		}
-		ordered.addAll(rest);
-		return ordered;
+		return picked;
 	}
 }

@@ -19,18 +19,23 @@ public class RecentCommandsTest
 	}
 
 	@Test
-	public void recentCommandsComeFirstLatestFirst()
+	public void recentCommandsArePickedLatestFirst()
 	{
 		final List<Command> commands = Arrays.asList(command("a"), command("b"), command(null), command("c"), command("d"));
-		assertEquals(List.of("d", "b", "a", "unkeyed", "c"),
-			titles(RecentCommands.recentFirst(commands, List.of("d", "gone", "b"))));
+		assertEquals(List.of("d", "b"), titles(RecentCommands.pick(commands, List.of("d", "gone", "b"), 8)));
 	}
 
 	@Test
-	public void nothingRecentLeavesTheOrderAlone()
+	public void noMoreThanTheLimitArePicked()
 	{
-		final List<Command> commands = Arrays.asList(command("a"), command("b"));
-		assertEquals(commands, RecentCommands.recentFirst(commands, List.of()));
+		final List<Command> commands = Arrays.asList(command("a"), command("b"), command("c"));
+		assertEquals(List.of("c", "a"), titles(RecentCommands.pick(commands, List.of("c", "gone", "a", "b"), 2)));
+	}
+
+	@Test
+	public void nothingRecentPicksNothing()
+	{
+		assertEquals(List.of(), RecentCommands.pick(Arrays.asList(command("a"), command("b")), List.of(), 8));
 	}
 
 	@Test
