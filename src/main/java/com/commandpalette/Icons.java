@@ -14,6 +14,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
 import javax.swing.Icon;
 import net.runelite.client.ui.ColorScheme;
 
@@ -243,6 +244,53 @@ enum Icons implements Icon
 				g.setStroke(new BasicStroke(8, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				line(g, 40, 40, 54, 54);
 			}
+		},
+	PIN
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a drawing pin seen from the side, its point at the bottom
+				g.draw(pinHead());
+				line(g, 32, 36, 32, 57);
+			}
+		},
+	PIN_FILLED
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				g.setColor(ColorScheme.BRAND_ORANGE);
+				g.fill(pinHead());
+				g.draw(pinHead());
+				line(g, 32, 36, 32, 57);
+			}
+		},
+	CUSTOM
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a box with a plus in it, for commands of one's own
+				g.draw(new RoundRectangle2D.Double(9, 9, 46, 46, 10, 10));
+				line(g, 32, 21, 32, 43);
+				line(g, 21, 32, 43, 32);
+			}
+		},
+	PROMPT
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a window with a command prompt in it, for the palette's own side panel
+				g.draw(new RoundRectangle2D.Double(6, 10, 52, 44, 8, 8));
+				final Path2D chevron = new Path2D.Double();
+				chevron.moveTo(16, 24);
+				chevron.lineTo(26, 32);
+				chevron.lineTo(16, 40);
+				g.draw(chevron);
+				line(g, 31, 41, 46, 41);
+			}
 		};
 
 	static final int SIZE = 16;
@@ -278,6 +326,18 @@ enum Icons implements Icon
 	public int getIconHeight()
 	{
 		return SIZE;
+	}
+
+	/**
+	 * The icon drawn once into an image, for a sidebar button.
+	 */
+	BufferedImage image()
+	{
+		final BufferedImage image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
+		final Graphics2D g = image.createGraphics();
+		paintIcon(null, g, 0, 0);
+		g.dispose();
+		return image;
 	}
 
 	/**
@@ -318,6 +378,19 @@ enum Icons implements Icon
 				return SIZE;
 			}
 		};
+	}
+
+	private static Path2D pinHead()
+	{
+		final Path2D head = new Path2D.Double();
+		head.moveTo(22, 8);
+		head.lineTo(42, 8);
+		head.lineTo(38, 26);
+		head.lineTo(46, 36);
+		head.lineTo(18, 36);
+		head.lineTo(26, 26);
+		head.closePath();
+		return head;
 	}
 
 	private static void line(Graphics2D g, double x1, double y1, double x2, double y2)

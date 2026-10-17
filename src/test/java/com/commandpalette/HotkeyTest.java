@@ -101,4 +101,18 @@ public class HotkeyTest
 		assertEquals(CTRL, PlatformModifier.resolve("WINDOWS", true));
 		assertEquals(CMD, PlatformModifier.resolve("MAC", false));
 	}
+
+	@Test
+	public void theHotkeyIsDescribedInPlainText()
+	{
+		assertEquals("Ctrl+P", hotkey.describe());
+		platformModifier = CMD;
+		assertEquals("Cmd+P", hotkey.describe());
+		requireModifier = false;
+		assertEquals("P", hotkey.describe());
+		saved = Keybind.NOT_SET;
+		assertEquals(null, hotkey.describe());
+		// a key the client names with a symbol, as a Mac names its arrows
+		assertEquals(null, Hotkey.describe(CMD, "\u2191"));
+	}
 }

@@ -53,6 +53,27 @@ class Hotkey
 		return code == KeyEvent.VK_UNDEFINED ? Keybind.NOT_SET : new Keybind(code, modifier());
 	}
 
+	/**
+	 * The keys to press, as the plugin's own text says them, "Cmd+P" or "Ctrl+P", or null if the key is unset or
+	 * has no plain name: the client's names, such as a Mac's ⌘, aren't all in RuneLite's fonts.
+	 */
+	String describe()
+	{
+		final int code = config.hotkey().getKeyCode();
+		return code == KeyEvent.VK_UNDEFINED ? null : describe(modifier(), KeyEvent.getKeyText(code));
+	}
+
+	static String describe(int modifier, String key)
+	{
+		if (!key.chars().allMatch(c -> c >= ' ' && c < 127))
+		{
+			return null;
+		}
+		final String prefix = modifier == InputEvent.META_DOWN_MASK ? "Cmd+"
+			: modifier == InputEvent.CTRL_DOWN_MASK ? "Ctrl+" : "";
+		return prefix + key;
+	}
+
 	private int modifier()
 	{
 		return hasModifier() ? platformModifier.getAsInt() : 0;

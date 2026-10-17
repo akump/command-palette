@@ -141,4 +141,60 @@ public class PalettePanelTest
 		press(KeyEvent.VK_ENTER, 0);
 		assertEquals(List.of("run Panel 9", "run Panel 1"), events);
 	}
+
+	// the renderer, set up for the command, laid out as wide as a row of the palette
+	private java.awt.Container row(Command command)
+	{
+		@SuppressWarnings("unchecked")
+		final javax.swing.JList<Command> list = (javax.swing.JList<Command>) find(panel, javax.swing.JList.class);
+		final java.awt.Container row = (java.awt.Container) list.getCellRenderer()
+			.getListCellRendererComponent(list, command, 0, false, false);
+		row.setSize(list.getFixedCellWidth(), list.getFixedCellHeight());
+		row.doLayout();
+		return row;
+	}
+
+	private static java.awt.Component find(java.awt.Container container, Class<?> type)
+	{
+		for (java.awt.Component child : container.getComponents())
+		{
+			if (type.isInstance(child))
+			{
+				return child;
+			}
+			if (child instanceof java.awt.Container)
+			{
+				final java.awt.Component found = find((java.awt.Container) child, type);
+				if (found != null)
+				{
+					return found;
+				}
+			}
+		}
+		return null;
+	}
+
+	@Test
+	public void aRowShowsItsNameAndItsDetailInFullWhenTheyFit()
+	{
+		show(1);
+		final java.awt.Component[] labels = row(new Command("Configuration", "Open panel", null, () -> {})).getComponents();
+		// the name fills what the detail leaves
+		org.junit.Assert.assertTrue(labels[0].getWidth() >= labels[0].getPreferredSize().width);
+		assertEquals(labels[1].getPreferredSize().width, labels[1].getWidth());
+		org.junit.Assert.assertTrue(labels[1].getWidth() > 0);
+	}
+
+	@Test
+	public void aLongDetailIsCutShortForTheName()
+	{
+		show(1);
+		final java.awt.Component[] labels = row(new Command("World 330",
+			"Current - Favourite - Members - US West - House Party, Gilded Altar, and more besides", null, () -> {}))
+			.getComponents();
+		// the name is all there, and the detail takes the rest
+		org.junit.Assert.assertTrue(labels[0].getWidth() >= labels[0].getPreferredSize().width);
+		org.junit.Assert.assertTrue(labels[1].getWidth() > 0);
+		org.junit.Assert.assertTrue(labels[1].getX() + labels[1].getWidth() <= 320);
+	}
 }

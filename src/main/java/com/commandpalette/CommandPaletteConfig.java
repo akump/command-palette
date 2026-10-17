@@ -88,6 +88,21 @@ public interface CommandPaletteConfig extends Config
 		return true;
 	}
 
+	String SIDE_PANEL_KEY = "sidePanel";
+
+	@ConfigItem(
+		keyName = SIDE_PANEL_KEY,
+		name = "Side panel",
+		description = "Add a Command Palette panel to the sidebar, with tabs for the worlds (to hop with a click),"
+			+ " running timers, this session's xp, the palette's recent answers, your pinned commands and"
+			+ " commands of your own",
+		position = 5
+	)
+	default boolean sidePanel()
+	{
+		return true;
+	}
+
 	@ConfigItem(
 		keyName = "panelCommands",
 		name = "Side panels",
@@ -181,7 +196,8 @@ public interface CommandPaletteConfig extends Config
 		keyName = "worldCommands",
 		name = "Worlds",
 		description = "List every world, to look one up by its number or activity, the World Hopper plugin's"
-			+ " favourites first. Running one opens the World Switcher panel; it doesn't hop."
+			+ " favourites first. Running one highlights it in the side panel's Worlds tab, where a click hops,"
+			+ " or with the side panel off opens the World Hopper plugin's panel."
 			+ " PvP, high risk and Deadman worlds are left out.",
 		section = commandsSection,
 		position = 7
@@ -214,5 +230,18 @@ public interface CommandPaletteConfig extends Config
 	default String help()
 	{
 		return "Open the palette, type help and press Enter. The Help command lists every command.";
+	}
+
+	String SEEN_VERSION_KEY = "lastSeenVersion";
+
+	@ConfigItem(
+		keyName = SEEN_VERSION_KEY,
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default String lastSeenVersion()
+	{
+		return "";
 	}
 }

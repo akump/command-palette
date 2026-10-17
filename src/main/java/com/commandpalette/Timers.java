@@ -2,6 +2,7 @@ package com.commandpalette;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,38 @@ class Timers
 		String describe()
 		{
 			return Durations.format(seconds) + " timer" + (label.isEmpty() ? "" : ": " + label);
+		}
+	}
+
+	/**
+	 * A timer that is running, as it stood when asked for.
+	 */
+	static final class Status
+	{
+		private final Request request;
+		private final long secondsLeft;
+		private final Runnable cancel;
+
+		private Status(Request request, long secondsLeft, Runnable cancel)
+		{
+			this.request = request;
+			this.secondsLeft = secondsLeft;
+			this.cancel = cancel;
+		}
+
+		Request getRequest()
+		{
+			return request;
+		}
+
+		long getSecondsLeft()
+		{
+			return secondsLeft;
+		}
+
+		void cancel()
+		{
+			cancel.run();
 		}
 	}
 
@@ -142,12 +175,24 @@ class Timers
 	 */
 	void collect(List<Command> out)
 	{
+		for (Status timer : running())
+		{
+			out.add(new Command("Cancel " + timer.getRequest().describe(),
+				Durations.format(timer.getSecondsLeft()) + " left", Icons.TIMER, timer::cancel));
+		}
+	}
+
+	/**
+	 * The timers that are running, the one that ends soonest first.
+	 */
+	List<Status> running()
+	{
 		final long now = System.currentTimeMillis();
-		running.stream()
+		return running.stream()
 			.sorted((a, b) -> Long.compare(a.endsAt, b.endsAt))
-			.forEach(timer -> out.add(new Command("Cancel " + timer.request.describe(),
-				Durations.format(Math.max(1, Math.round((timer.endsAt - now) / 1000.0))) + " left", Icons.TIMER,
-				() -> cancel(timer))));
+			.map(timer -> new Status(timer.request, Math.max(1, Math.round((timer.endsAt - now) / 1000.0)),
+				() -> cancel(timer)))
+			.collect(Collectors.toList());
 	}
 
 	private void cancel(Running timer)

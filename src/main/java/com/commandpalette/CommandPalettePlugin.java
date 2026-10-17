@@ -1,6 +1,7 @@
 package com.commandpalette;
 
 import com.google.inject.Provides;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
@@ -10,7 +11,11 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -18,12 +23,24 @@ import javax.swing.JRootPane;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.GameState;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.chat.ChatColorType;
+import net.runelite.client.chat.ChatMessageBuilder;
+import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.events.ProfileChanged;
+import net.runelite.client.events.WorldsFetch;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +54,21 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	private static final Logger log = LoggerFactory.getLogger(CommandPalettePlugin.class);
 
 	private static final int NO_KEY = KeyEvent.VK_UNDEFINED;
+	static final String SIDE_PANEL_KIND = "sidepanel:";
+
+	// The latest version with something new to tell of, and what is said about it, once, at the next login.
+	// A release with nothing to announce changes the version and leaves the news empty.
+	static final String NEWS_VERSION = "1.0.0";
+	static final String NEWS = "";
 
 	@Inject
 	private CommandPaletteConfig config;
 
 	@Inject
 	private Hotkey hotkey;
+
+	@Inject
+	private GameTyping gameTyping;
 
 	@Inject
 	private SidebarCommands sidebarCommands;
@@ -66,7 +92,22 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	private WorldCommands worldCommands;
 
 	@Inject
+	private WorldHopper worldHopper;
+
+	@Inject
 	private RecentCommands recentCommands;
+
+	@Inject
+	private PinnedCommands pinnedCommands;
+
+	@Inject
+	private CustomCommands customCommands;
+
+	@Inject
+	private Answers answers;
+
+	@Inject
+	private SkillIconManager skillIconManager;
 
 	@Inject
 	private Timers timers;
@@ -77,7 +118,20 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	@Inject
 	private ConfigManager configManager;
 
+	@Inject
+	private ClientToolbar clientToolbar;
+
+	@Inject
+	private ChatMessageManager chatMessageManager;
+
 	private PalettePanel panel;
+	private SidePanel sidePanel;
+	private WorldPanel worldPanel;
+	// the side panel's place in the sidebar, and whether it is in the sidebar
+	private NavigationButton sideButton;
+	private boolean sideButtonShown;
+	// A first install has no news to catch up on: it is welcomed instead, at the next login
+	private boolean welcomePending;
 	private JDialog dialog;
 	// the hotkey's key while it is still held down after opening or closing the palette
 	private int heldKey = NO_KEY;
@@ -93,8 +147,51 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	{
 		// Not the KeyManager: that only hears keys pressed on the game, and the palette should also open from a
 		// side panel, and close from its own search field
+		// Nothing saved at all means a first install
+		if (config.lastSeenVersion().isEmpty()
+			&& configManager.getConfigurationKeys(CommandPaletteConfig.GROUP + ".").isEmpty())
+		{
+			configManager.setConfiguration(CommandPaletteConfig.GROUP, CommandPaletteConfig.SEEN_VERSION_KEY,
+				NEWS_VERSION);
+			welcomePending = true;
+		}
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
 		eventBus.register(sessionCommands);
+		// a hop takes a few game ticks to carry out
+		eventBus.register(worldHopper);
+		createSidePanel();
+		syncSidePanel();
+		loadWorldLocations();
+	}
+
+	// which coast each US world is on, for its icon and description
+	private void loadWorldLocations()
+	{
+		worldCommands.loadLocations(this::refreshWorldPanel);
+	}
+
+	private void createSidePanel()
+	{
+		worldPanel = new WorldPanel(() -> worldCommands.refresh(worldPanel), worldHopper::hop,
+			worldCommands::setFavourite);
+		final Map<SidePanel.Tab, SideTab> tabs = new EnumMap<>(SidePanel.Tab.class);
+		tabs.put(SidePanel.Tab.WORLDS, worldPanel);
+		tabs.put(SidePanel.Tab.TIMERS, new TimersPanel(timers::running, timers::start));
+		tabs.put(SidePanel.Tab.SESSION, new SessionPanel(sessionCommands::snapshot,
+			skill -> Icons.of(skillIconManager.getSkillImage(skill, true))));
+		tabs.put(SidePanel.Tab.ANSWERS, new AnswersPanel(answers));
+		tabs.put(SidePanel.Tab.PINNED, new PinnedPanel(this::collectCommands, this::run, pinnedCommands::load,
+			pinnedCommands::toggle, recentCommands::load));
+		tabs.put(SidePanel.Tab.CUSTOM, new CustomPanel(customCommands::load, customCommands::save,
+			this::collectCommands));
+		sidePanel = new SidePanel(tabs, hotkey::describe, () -> helpCommand.command().run());
+		answers.setOnChange(() -> SwingUtilities.invokeLater(() -> sidePanel.refreshIfShowing(SidePanel.Tab.ANSWERS)));
+		sideButton = NavigationButton.builder()
+			.tooltip(SidePanel.NAME)
+			.icon(Icons.PROMPT.image())
+			.priority(8)
+			.panel(sidePanel)
+			.build();
 	}
 
 	// The help in the settings is in text boxes, which can be typed in: put back whatever is changed
@@ -106,6 +203,104 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		{
 			configManager.unsetConfiguration(CommandPaletteConfig.GROUP, event.getKey());
 		}
+		if (CommandPaletteConfig.GROUP.equals(event.getGroup())
+			&& event.getKey().equals(CommandPaletteConfig.SIDE_PANEL_KEY))
+		{
+			SwingUtilities.invokeLater(this::syncSidePanel);
+		}
+	}
+
+	// Another profile has settings, recently used commands and pins of its own, which no config change is sent for
+	@Subscribe
+	public void onProfileChanged(ProfileChanged event)
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			syncSidePanel();
+			if (sidePanel != null)
+			{
+				sidePanel.refreshIfShowing(sidePanel.getSelected());
+			}
+		});
+		loadWorldLocations();
+	}
+
+	// the side panel is in the sidebar while the setting says so
+	private void syncSidePanel()
+	{
+		if (config.sidePanel() && !sideButtonShown)
+		{
+			clientToolbar.addNavigation(sideButton);
+			sideButtonShown = true;
+		}
+		else if (!config.sidePanel() && sideButtonShown)
+		{
+			clientToolbar.removeNavigation(sideButton);
+			sideButtonShown = false;
+		}
+	}
+
+	// keep the player counts and the current world up to date while the world panel is open
+	@Subscribe
+	public void onWorldsFetch(WorldsFetch event)
+	{
+		// the list may have worlds the locations haven't been read for
+		loadWorldLocations();
+	}
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		refreshWorldPanel();
+		if (event.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+		// This state comes again after every loading screen, so each message is marked as given before it is
+		if (welcomePending)
+		{
+			welcomePending = false;
+			say(welcome(hotkey.describe()));
+		}
+		else if (!NEWS_VERSION.equals(config.lastSeenVersion()))
+		{
+			configManager.setConfiguration(CommandPaletteConfig.GROUP, CommandPaletteConfig.SEEN_VERSION_KEY,
+				NEWS_VERSION);
+			if (!NEWS.isEmpty())
+			{
+				say(NEWS);
+			}
+		}
+	}
+
+	private void say(String message)
+	{
+		chatMessageManager.queue(QueuedMessage.builder()
+			.type(ChatMessageType.CONSOLE)
+			.runeLiteFormattedMessage(new ChatMessageBuilder().append(ChatColorType.HIGHLIGHT).append(message).build())
+			.build());
+	}
+
+	/**
+	 * What a first install is told: how to open the palette.
+	 *
+	 * @param keys the hotkey, "Ctrl+P", or null if it has no name to give
+	 */
+	static String welcome(String keys)
+	{
+		return "Command Palette: press " + (keys == null ? "its hotkey" : keys) + " anywhere in the client to open"
+			+ " a side panel, a plugin's settings or a world by typing its name. Type help to see the rest.";
+	}
+
+	private void refreshWorldPanel()
+	{
+		SwingUtilities.invokeLater(() ->
+		{
+			if (sidePanel != null)
+			{
+				sidePanel.refreshIfShowing(SidePanel.Tab.WORLDS);
+			}
+		});
 	}
 
 	@Override
@@ -113,10 +308,18 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	{
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(this);
 		eventBus.unregister(sessionCommands);
+		eventBus.unregister(worldHopper);
+		clientToolbar.removeNavigation(sideButton);
+		sideButtonShown = false;
+		welcomePending = false;
 		sessionCommands.reset();
+		worldHopper.reset();
 		timers.reset();
+		answers.setOnChange(() -> {});
+		answers.clear();
 		SwingUtilities.invokeLater(() ->
 		{
+			sidePanel.stop();
 			if (dialog != null)
 			{
 				dialog.dispose();
@@ -161,10 +364,11 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 
 	private boolean toggle(KeyEvent e)
 	{
-		// Without Ctrl/Cmd, a hotkey that is also a character belongs to whatever text field is being typed in,
-		// the palette's own search included
+		// Without Ctrl/Cmd, a hotkey that is also a character belongs to whatever is being typed in: a text field,
+		// the palette's own search included, or the game's chat or an input box of the game's
+		final Component focused = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
 		if (!hotkey.hasModifier() && !e.isActionKey()
-			&& KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner() instanceof JTextComponent)
+			&& (focused instanceof JTextComponent || gameTyping.isGame(focused) && gameTyping.isTyping()))
 		{
 			return false;
 		}
@@ -189,10 +393,54 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 			return false;
 		}
 
+		final List<Command> commands = collect(frame);
+		// for a custom command that takes text, before the recently used are taken out of the list
+		final Map<String, Command> byKey = byKey(commands);
+		if (dialog == null)
+		{
+			createDialog(frame);
+		}
+		final List<Command> recent = config.recentFirst()
+			? RecentCommands.pick(commands, recentCommands.load(), config.recentCount())
+			: Collections.emptyList();
+		commands.removeAll(recent);
+		panel.show(recent, commands, typed ->
+		{
+			final List<Command> typedOnes = new ArrayList<>(customCommands.forQuery(typed, byKey::get));
+			typedOnes.addAll(typedCommands.forQuery(typed));
+			return typedOnes;
+		}, config.showIcons());
+		dialog.pack();
+		dialog.setLocation(location(frame));
+		dialog.setVisible(true);
+		panel.focusSearch();
+		return true;
+	}
+
+	// for the side panel's Pinned tab
+	private List<Command> collectCommands()
+	{
+		final JFrame frame = Sidebar.findClientFrame();
+		return frame == null ? Collections.emptyList() : collect(frame);
+	}
+
+	/**
+	 * Every command of the groups turned on, as things stand.
+	 */
+	private List<Command> collect(JFrame frame)
+	{
 		final List<Command> commands = new ArrayList<>();
 		if (config.panelCommands())
 		{
 			sidebarCommands.collect(frame, commands);
+		}
+		if (config.sidePanel())
+		{
+			for (SidePanel.Tab tab : SidePanel.Tab.values())
+			{
+				commands.add(new Command(SIDE_PANEL_KIND + tab.name().toLowerCase(Locale.ROOT), tab.getTitle(),
+					"Open in the " + SidePanel.NAME + " panel", tab.getIcon(), () -> showTab(frame, tab)));
+			}
 		}
 		if (config.clientCommands())
 		{
@@ -211,23 +459,46 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		}
 		if (config.worldCommands())
 		{
-			worldCommands.collect(commands, () -> sidebarCommands.open(frame, WorldCommands.SWITCHER_PANEL));
+			worldCommands.collect(commands, world -> showWorld(frame, world));
 		}
+		// last, so that they can run any of the others
+		customCommands.collect(commands, byKey(commands)::get);
+		return commands;
+	}
 
-		if (dialog == null)
+	/**
+	 * The commands a custom one can run, by key.
+	 */
+	private static Map<String, Command> byKey(List<Command> commands)
+	{
+		final Map<String, Command> byKey = new HashMap<>();
+		for (Command command : commands)
 		{
-			createDialog(frame);
+			if (CustomCommands.canRun(command))
+			{
+				byKey.putIfAbsent(command.getKey(), command);
+			}
 		}
-		final List<Command> recent = config.recentFirst()
-			? RecentCommands.pick(commands, recentCommands.load(), config.recentCount())
-			: Collections.emptyList();
-		commands.removeAll(recent);
-		panel.show(recent, commands, typedCommands::forQuery, config.showIcons());
-		dialog.pack();
-		dialog.setLocation(location(frame));
-		dialog.setVisible(true);
-		panel.focusSearch();
-		return true;
+		return byKey;
+	}
+
+	// the world picked out in the side panel, for the user to click
+	private void showWorld(JFrame frame, int world)
+	{
+		if (!config.sidePanel())
+		{
+			// there is no panel of this plugin's own to pick it out in
+			sidebarCommands.open(frame, WorldCommands.SWITCHER_PANEL);
+			return;
+		}
+		worldPanel.highlight(world);
+		showTab(frame, SidePanel.Tab.WORLDS);
+	}
+
+	private void showTab(JFrame frame, SidePanel.Tab tab)
+	{
+		sidePanel.select(tab);
+		sidebarCommands.open(frame, SidePanel.NAME);
 	}
 
 	private void createDialog(JFrame frame)

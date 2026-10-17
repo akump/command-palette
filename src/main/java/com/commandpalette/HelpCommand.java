@@ -10,6 +10,8 @@ import javax.swing.JOptionPane;
  */
 class HelpCommand
 {
+	private static final int WIDTH = 560;
+
 	private final CommandPaletteConfig config;
 
 	@Inject
@@ -27,7 +29,8 @@ class HelpCommand
 
 	String text()
 	{
-		final StringBuilder html = new StringBuilder("<html><table cellpadding=2>");
+		// as wide as the commands need, so that a long tip wraps rather than stretching the window
+		final StringBuilder html = new StringBuilder("<html><table cellpadding=2 width=" + WIDTH + ">");
 		for (Section section : sections())
 		{
 			html.append("<tr><td colspan=2><b>").append(section.getTitle()).append("</b></td></tr>");
@@ -76,7 +79,16 @@ class HelpCommand
 		}
 		if (config.worldCommands())
 		{
-			commands.row("world 302, wintertodt", "Look up a world; Enter opens the World Switcher");
+			commands.row("world 302, wintertodt", config.sidePanel()
+				? "Pick out a world in the side panel, to click" : "Look up a world; Enter opens the World Switcher");
+			if (config.sidePanel())
+			{
+				commands.row("previous world", "Pick out the world you were on before");
+			}
+		}
+		if (config.sidePanel())
+		{
+			commands.row("timers, session, answers, pinned, custom", "Open that tab of the Command Palette side panel");
 		}
 		if (config.lookupCommands())
 		{
@@ -109,6 +121,13 @@ class HelpCommand
 		if (config.recentFirst())
 		{
 			tips.note("The commands you ran last are listed first, above a line.");
+		}
+		if (config.sidePanel())
+		{
+			tips.note("Sums, taxes and prices you work out are kept in the side panel's Answers tab, and the"
+				+ " commands you use most can be pinned in its Pinned tab.");
+			tips.note("Make commands of your own in its Custom tab: a site to search, a timer you start often,"
+				+ " a shortcut to another command or text to copy.");
 		}
 		tips.note("Change the hotkey and turn groups of commands off in the plugin's settings.");
 		return List.of(commands, narrowing, tips);

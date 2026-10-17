@@ -48,13 +48,15 @@ class TypedCommands
 	private final SkillIconManager skillIconManager;
 	private final CommandPaletteConfig config;
 	private final Timers timers;
+	private final Answers answers;
 
 	private Runnable onIconLoaded = () -> {};
 
 	@Inject
 	TypedCommands(Client client, ClientThread clientThread, ItemManager itemManager, SkillIconManager skillIconManager,
-		CommandPaletteConfig config, Timers timers)
+		CommandPaletteConfig config, Timers timers, Answers answers)
 	{
+		this.answers = answers;
 		this.timers = timers;
 		this.client = client;
 		this.clientThread = clientThread;
@@ -118,17 +120,21 @@ class TypedCommands
 			() -> LinkBrowser.browse(WIKI_SEARCH + URLEncoder.encode(search, StandardCharsets.UTF_8))));
 	}
 
-	private static void calculation(String text, List<Command> out)
+	private void calculation(String text, List<Command> out)
 	{
 		final Double value = Calculator.evaluate(text);
 		if (value != null)
 		{
-			out.add(new Command("= " + Calculator.format(value), "Copy", Icons.EQUALS, () -> Toolkit.getDefaultToolkit()
-				.getSystemClipboard().setContents(new StringSelection(Calculator.plain(value)), null)));
+			final String answer = text.trim() + " = " + Calculator.format(value);
+			out.add(new Command("= " + Calculator.format(value), "Copy", Icons.EQUALS, () ->
+			{
+				copy(Calculator.plain(value));
+				answers.add(answer, Calculator.plain(value), Icons.EQUALS);
+			}));
 		}
 	}
 
-	private static void dryStreak(String text, List<Command> out)
+	private void dryStreak(String text, List<Command> out)
 	{
 		final Matcher matcher = DRY.matcher(text);
 		final DryStreak streak = matcher.matches() ? DryStreak.parse(matcher.group(1)) : null;
@@ -144,7 +150,7 @@ class TypedCommands
 	}
 
 	// for a keyword followed by something the function can answer
-	private static void answer(Pattern pattern, String text, Function<String, String> function, Icon icon,
+	private void answer(Pattern pattern, String text, Function<String, String> function, Icon icon,
 		List<Command> out)
 	{
 		final Matcher matcher = pattern.matcher(text);
@@ -163,24 +169,37 @@ class TypedCommands
 		{
 			return;
 		}
-		out.add(new Command("Start " + request.describe(), "Notify when done", Icons.TIMER, () ->
+		out.add(new Command("Start " + request.describe(), "Notify when done", Icons.TIMER, () -> startTimer(request)));
+	}
+
+	/**
+	 * Starts the timer, and says so in the chat when logged in.
+	 */
+	void startTimer(Timers.Request request)
+	{
+		timers.start(request);
+		clientThread.invoke(() ->
 		{
-			timers.start(request);
-			clientThread.invoke(() ->
+			if (client.getGameState() == GameState.LOGGED_IN)
 			{
-				if (client.getGameState() == GameState.LOGGED_IN)
-				{
-					say("Started " + request.describe());
-				}
-			});
-		}));
+				say("Started " + request.describe());
+			}
+		});
 	}
 
 	// a command that is its own answer, and copies it
-	private static Command copying(String answer, Icon icon)
+	private Command copying(String answer, Icon icon)
 	{
-		return new Command(answer, "Copy", icon, () -> Toolkit.getDefaultToolkit()
-			.getSystemClipboard().setContents(new StringSelection(answer), null));
+		return new Command(answer, "Copy", icon, () ->
+		{
+			copy(answer);
+			answers.add(answer, icon);
+		});
+	}
+
+	private static void copy(String text)
+	{
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
 	}
 
 	private void items(String text, List<Command> out)
@@ -199,11 +218,15 @@ class TypedCommands
 			final AsyncBufferedImage image = itemManager.getImage(item.getId());
 			// item images are drawn on the client thread a moment later
 			image.onLoaded(onIconLoaded);
-			out.add(new Command(item.getName(), "Price and alch value", Icons.of(image), () -> clientThread.invoke(() ->
+			final Icon icon = Icons.of(image);
+			out.add(new Command(item.getName(), "Price and alch value", icon, () -> clientThread.invoke(() ->
 			{
 				final int alch = itemManager.getItemComposition(item.getId()).getHaPrice();
-				say(item.getName() + ": GE " + QuantityFormatter.formatNumber(itemManager.getItemPrice(item.getId()))
-					+ " gp, high alch " + QuantityFormatter.formatNumber(alch) + " gp");
+				final String answer = item.getName() + ": GE "
+					+ QuantityFormatter.formatNumber(itemManager.getItemPrice(item.getId()))
+					+ " gp, high alch " + QuantityFormatter.formatNumber(alch) + " gp";
+				say(answer);
+				answers.add(answer, icon);
 			})));
 		}
 	}
@@ -240,8 +263,12 @@ class TypedCommands
 		final String answer = remaining > 0
 			? skill.getName() + ": " + QuantityFormatter.formatNumber(remaining) + " xp to level " + level
 			: skill.getName() + " is already level " + level + " or higher";
-		out.add(new Command(answer, "Show in chat", Icons.of(skillIconManager.getSkillImage(skill, true)),
-			() -> clientThread.invoke(() -> say(answer))));
+		final Icon icon = Icons.of(skillIconManager.getSkillImage(skill, true));
+		out.add(new Command(answer, "Show in chat", icon, () ->
+		{
+			answers.add(answer, icon);
+			clientThread.invoke(() -> say(answer));
+		}));
 	}
 
 	// on the client thread

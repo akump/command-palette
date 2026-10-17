@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -291,6 +292,9 @@ class PalettePanel extends JPanel
 
 	private final class Row extends JPanel implements ListCellRenderer<Command>
 	{
+		// the least of a row's width a detail is cut down to, however long the name
+		private static final double DETAIL_SHARE = 0.35;
+
 		private final JLabel title = new JLabel();
 		private final JLabel detail = new JLabel();
 
@@ -320,8 +324,28 @@ class PalettePanel extends JPanel
 			detail.setText(command.getDetail());
 			detail.setIcon(showIcons && recent.contains(command) ? Icons.RECENT : null);
 			setBorder(index == firstOfRest ? SECTION_BORDER : ROW_BORDER);
+			fitDetail();
 			setBackground(selected ? ColorScheme.DARKER_GRAY_HOVER_COLOR : ColorScheme.DARKER_GRAY_COLOR);
 			return this;
+		}
+
+		/**
+		 * The name comes first: a long detail, such as a world's, is cut short with "..." to leave room for it, down
+		 * to a share of the row so that a long name doesn't hide its detail altogether.
+		 */
+		private void fitDetail()
+		{
+			detail.setPreferredSize(null);
+			final Insets insets = getBorder().getBorderInsets(this);
+			// the palette's width: a component's own WIDTH is ImageObserver's flag, which would shadow it here
+			final int room = PalettePanel.WIDTH - insets.left - insets.right - ((BorderLayout) getLayout()).getHgap();
+			final Dimension wanted = detail.getPreferredSize();
+			final int name = title.getPreferredSize().width;
+			if (name + wanted.width > room)
+			{
+				final int width = Math.max(room - name, (int) (room * DETAIL_SHARE));
+				detail.setPreferredSize(new Dimension(Math.min(wanted.width, width), wanted.height));
+			}
 		}
 	}
 }

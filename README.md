@@ -2,7 +2,7 @@
 
 A keyboard-driven list of commands for RuneLite. Press a hotkey, type a few letters, press `Enter`.
 
-<img src="docs/demo.gif" alt="Typing into the palette: finding a panel, looking up worlds, a plugin's settings, a sum, the tax on a sale, a timer, xp to a level and a wiki search" width="361">
+<img src="docs/demo.gif" alt="Typing into the palette: finding a panel, looking up worlds by activity and by coast, a plugin's settings, a sum, the tax on a sale, a timer, xp to a level and a wiki search" width="361">
 
 ## Using it
 
@@ -12,9 +12,11 @@ while a side panel has the keyboard.
 The plugin's settings have the key, **Open hotkey**, and whether Cmd or Ctrl has to be held with it, **Require
 Ctrl/Cmd**. Only the key of the hotkey is used, so the same settings work on a Mac and on Windows. If the
 Platform Keys plugin is on, its key profile decides which of Cmd and Ctrl it is. With Require Ctrl/Cmd off the
-key opens the palette on its own, except while you are typing in a text field.
+key opens the palette on its own, except while you are typing: in a text field, in the game's chat, or in one of
+the game's input boxes such as the bank search. While the Key Remapping plugin keeps typing out of the chat until
+`Enter`, the key opens the palette.
 
-<img src="docs/palette.png" alt="The command palette in the client, listing side panels to open" width="341">
+<img src="docs/palette.png" alt="The command palette as it opens: the commands used last above a line, then side panels to open and client utilities" width="334">
 
 | Key | Action |
 | --- | --- |
@@ -80,11 +82,17 @@ are logged in.
 
 | Command | What it does |
 | --- | --- |
-| World *number* | Looks up a world: type `world 302`, or part of an activity such as `wintertodt`, to see whether it is a members' world and what it is for. Running one opens the World Hopper plugin's panel, World Switcher, where you click the world to hop. |
+| World *number* | Looks up a world: type `world 302`, or part of an activity such as `wintertodt`, to see whether it is a members' world and what it is for. Running one opens the side panel's Worlds tab scrolled to that world and highlighted, ready to click. |
+| Previous world | The world you were on before this one, picked out in the Worlds tab to hop back to |
 
-The palette doesn't hop itself; Plugin Hub plugins may only hop from a button in a side panel. The worlds you have
-made favourites in the World Hopper plugin's panel come first, with a star, and `favourite` finds just those. The
-world you are on says `Current`. PvP, high risk, Deadman and beta worlds aren't listed.
+The palette doesn't hop itself; Plugin Hub plugins may only hop from a click in a side panel, so the hop is left to
+you in the [side panel](#the-side-panel). With the side panel turned off, running a world opens the World Hopper
+plugin's panel instead. Each world's icon is the flag of where it is, with a gold star in the corner for a members'
+world and a silver one for a free world, as in the game's own world switcher. A US world's flag has an arrow beside
+it for its coast, as in the game: pointing right on red for the east coast and left on blue for the west, and every
+world's description says where it is, such as `US West` or `Germany`, so `west` or `germany` finds them. The worlds
+you have made favourites in the World Hopper plugin's panel come first and say `Favourite`, which finds just those.
+The world you are on says `Current`. PvP, high risk, Deadman and beta worlds aren't listed.
 
 ### Plugins
 
@@ -105,6 +113,72 @@ turn it on from the Configuration panel, which asks before turning the other one
 | Help | Shows the commands that are turned on, with an example of each. The **Help** section of the settings points to it. |
 
 <img src="docs/help.png" alt="The help window, listing the commands and the symbols that narrow the list" width="502">
+
+## The side panel
+
+The **Command Palette** panel in the sidebar keeps on screen what is better seen than typed, in six tabs. The
+palette opens any of them: type `timers`, `session`, `answers`, `pinned` or `custom`. **Side panel** in the
+settings removes it from the sidebar.
+
+| Tab | What it has |
+| --- | --- |
+| Worlds | Every world the palette lists, with a search at the top and a choice of all, members' or free worlds, by number or by players. Click **Hop to world ...** or double-click a world to hop, and **Back to world ...** to return to the one before. Right-click a world to add it to the World Hopper plugin's favourites or take it out; that plugin's own panel shows the change the next time it reloads its list. |
+| Timers | Start a timer by typing `5m herb run` or with one click on a length, and watch the ones running count down, each with a button to cancel it |
+| Session | How long you have been logged in, the xp gained in all and an hour, and the xp in each skill, kept up to date while it is showing |
+| Answers | The last 15 sums, taxes, prices, dry streaks and xp goals worked out in the palette, each with a button to copy it, until the client closes |
+| Pinned | The commands you pin, a click away, and below them the ones you used recently, each with a pin to keep it |
+| Custom | [Commands of your own](#custom-commands), to add, change and delete |
+
+Nothing in the panel hops or acts on a key press: hopping takes a click.
+
+<img src="docs/side-panel.png" alt="The side panel's six tabs: worlds with flags, a search and hop buttons; running timers; this session's xp; recent answers; pinned commands; and custom commands" width="900">
+
+### Custom commands
+
+The Custom tab makes commands of your own out of what the palette can already do. Click **Add**, give the command
+the name you will type, and choose what it does:
+
+| Does | Example |
+| --- | --- |
+| Open a link | `ge` opening `https://prices.runescape.wiki/osrs/search?q={text}`: whatever you type after the name goes in place of `{text}`, so `ge abyssal whip` searches for the whip. A link without `{text}` just opens. |
+| Start a timer | `herbs` starting `80m herb run` |
+| Run a palette command | `loot` opening the Loot Tracker panel, or a plugin's settings, a world, a tab of the side panel |
+| Copy text | `cc` copying your clan chat's name |
+
+Custom commands are listed, searched, remembered as recently used and pinned like any other. They are kept in each
+RuneLite profile's settings. None of them can act on the game: they only do what the palette's own commands do,
+and one can't run another.
+
+<img src="docs/custom-commands.png" alt="The Custom tab listing five commands, and its editor making a command that searches the Grand Exchange prices" width="400">
+
+## Settings
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| Open hotkey | `P` | The key that opens the palette. Only the key is used; the modifier comes from the next setting. |
+| Require Ctrl/Cmd | On | Hold Cmd (Mac) or Ctrl (Windows/Linux) with the hotkey, or the Platform Keys plugin's choice when it is on |
+| Recently used first | On | List the commands you ran last first, in a section of their own |
+| Recently used count | 8 | How many of them, from 1 to 20 |
+| Show icons | On | An icon before each command, and a clock after a recently used one |
+| Side panel | On | The [Command Palette panel](#the-side-panel) in the sidebar |
+| **Commands** | | |
+| Side panels | On | A command per side panel, and ones to close the open panel and hide or show the sidebar |
+| Client utilities | On | Screenshots, copying your world or coordinates, the session summary, your hiscores and tracker pages, and the screenshots, logs and RuneLite folders |
+| Lookups and sums | On | Sums, dry streaks, the Grand Exchange's tax, ticks as time, item prices and xp to a level |
+| Plugins on/off | Off | A command per plugin, to turn it on or off |
+| Confirm plugins on/off | On | Ask before turning a plugin on or off |
+| Plugin settings | On | A command per plugin with settings, to open them |
+| Wiki search | On | Offer a wiki search for whatever is typed. Starting with `?` searches the wiki either way. |
+| Worlds | On | A command per world, to pick it out in the side panel |
+| Timers | On | `timer 5m herb run`. A running timer can be cancelled either way. |
+
+## Requirements
+
+Nothing beyond RuneLite. The worlds you have made favourites in RuneLite's World Hopper plugin come first, whether
+or not that plugin is on, and the Platform Keys plugin, when it is on, decides between Cmd and Ctrl.
+
+The first time you log in after installing it, the plugin says in the chat which key opens the palette. After an
+update that adds something worth knowing, it says what, once, the next time you log in.
 
 ## Finding a command
 
@@ -136,6 +210,7 @@ is what clicking its icon does. No reflection is involved.
 
 ## Development
 
-`./gradlew runClient` starts RuneLite with the plugin loaded. `./gradlew test` also writes a rendering of the
-palette to `build/preview.png`, the help window to `build/help.png` and the animation above to
-`build/demo.gif`; copy the last two into `docs/` after changing how the palette looks.
+`./gradlew runClient` starts RuneLite with the plugin loaded. `./gradlew test` also renders the pictures in this
+README: the animation to `build/demo.gif`, the help window to `build/help.png`, and the palette, the side panel and
+its Custom tab to `build/docs/`. Copy them into `docs/` after changing how any of them looks.
+It writes a sheet of the palette's looks to `build/preview.png` too, for checking them at a glance.

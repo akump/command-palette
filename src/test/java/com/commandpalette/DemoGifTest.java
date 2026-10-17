@@ -88,10 +88,19 @@ public class DemoGifTest
 		{
 			commands.add(command(PluginCommands.SETTINGS_KIND + plugin, plugin, "Open settings", Icons.COG));
 		}
-		commands.add(command(WorldCommands.KIND + 301, "World 301", "Free - Trade", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 302, "World 302", "Members - Trade", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 307, "World 307", "Members - Wintertodt", Icons.GLOBE));
-		commands.add(command(WorldCommands.KIND + 309, "World 309", "Members - Wintertodt", Icons.GLOBE));
+		commands.add(command(WorldCommands.KIND + 301, "World 301", "Free - US East - Trade", WorldIcons.of(WorldLocation.US_EAST, false)));
+		commands.add(command(WorldCommands.KIND + 302, "World 302", "Members - UK - Trade", WorldIcons.of(WorldLocation.UK, true)));
+		commands.add(command(WorldCommands.KIND + 307, "World 307", "Members - UK - Wintertodt", WorldIcons.of(WorldLocation.UK, true)));
+		commands.add(command(WorldCommands.KIND + 309, "World 309", "Members - Germany - Wintertodt", WorldIcons.of(WorldLocation.GERMANY, true)));
+		commands.add(command(WorldCommands.KIND + 330, "World 330", "Members - US West - House Party",
+			WorldIcons.of(WorldLocation.US_WEST, true)));
+		commands.add(command(WorldCommands.KIND + 420, "World 420", "Members - US West - Group Iron",
+			WorldIcons.of(WorldLocation.US_WEST, true)));
+		for (SidePanel.Tab tab : SidePanel.Tab.values())
+		{
+			commands.add(command(CommandPalettePlugin.SIDE_PANEL_KIND + tab.name().toLowerCase(), tab.getTitle(),
+				"Open in the " + SidePanel.NAME + " panel", tab.getIcon()));
+		}
 		commands.add(command("help", "Help", "What to type", Icons.HELP));
 		return commands;
 	}
@@ -235,6 +244,8 @@ public class DemoGifTest
 		press(KeyEvent.VK_DOWN, 2);
 		clear();
 		type("wintertodt");
+		clear();
+		type("@ west");
 		clear();
 		type(">scr");
 		clear();
