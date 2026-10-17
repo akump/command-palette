@@ -3,9 +3,12 @@ package com.commandpalette;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -14,6 +17,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.Icon;
@@ -23,7 +27,16 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 
@@ -57,7 +70,20 @@ class CustomPanel extends SideTab
 	// the editor's fields, while it is open
 	private final JTextField name = new JTextField();
 	private final JComboBox<CustomCommand.Action> action = new JComboBox<>(CustomCommand.Action.values());
-	private final JTextField value = new JTextField();
+	// wraps and grows as it fills, as a link or a line of text can be long
+	private final JTextArea value = new JTextArea()
+	{
+		@Override
+		public Dimension getPreferredSize()
+		{
+			// before it is laid out it has no width to wrap to, so it takes the panel's
+			if (getWidth() == 0)
+			{
+				setSize(TEXT_WIDTH, Short.MAX_VALUE);
+			}
+			return super.getPreferredSize();
+		}
+	};
 	private final JComboBox<Command> command = new JComboBox<>();
 	private final JLabel valueLabel = label("");
 	private final JLabel hint = note("");
@@ -106,7 +132,60 @@ class CustomPanel extends SideTab
 		valueHolder.setOpaque(false);
 		error.setForeground(ColorScheme.PROGRESS_ERROR_COLOR);
 		name.addActionListener(e -> saveEditor());
-		value.addActionListener(e -> saveEditor());
+		value.setLineWrap(true);
+		value.setWrapStyleWord(true);
+		value.setFont(name.getFont());
+		value.setBorder(UIManager.getBorder("TextField.border"));
+		value.setBackground(name.getBackground());
+		// a command is one line: Enter saves, as in the name, and a pasted line break becomes a space
+		value.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "save");
+		value.getActionMap().put("save", new AbstractAction()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				saveEditor();
+			}
+		});
+		// Tab moves on, as from a field, not putting one in
+		value.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, null);
+		value.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, null);
+		((AbstractDocument) value.getDocument()).setDocumentFilter(new DocumentFilter()
+		{
+			@Override
+			public void insertString(FilterBypass fb, int offset, String text, AttributeSet attr)
+				throws BadLocationException
+			{
+				super.insertString(fb, offset, oneLine(text), attr);
+			}
+
+			@Override
+			public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+				throws BadLocationException
+			{
+				super.replace(fb, offset, length, oneLine(text), attrs);
+			}
+		});
+		value.getDocument().addDocumentListener(new DocumentListener()
+		{
+			@Override
+			public void insertUpdate(DocumentEvent e)
+			{
+				grow();
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				grow();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
+			{
+				grow();
+			}
+		});
 	}
 
 	@Override
@@ -129,7 +208,19 @@ class CustomPanel extends SideTab
 		return action;
 	}
 
-	JTextField getValueField()
+	private static String oneLine(String text)
+	{
+		return text == null ? null : text.replaceAll("\\R", " ");
+	}
+
+	// lays the editor out again, for the value's field to take as many lines as its text needs
+	private void grow()
+	{
+		content.revalidate();
+		content.repaint();
+	}
+
+	JTextArea getValueField()
 	{
 		return value;
 	}
