@@ -26,6 +26,7 @@ import javax.swing.text.JTextComponent;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.chat.ChatColorType;
 import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.chat.ChatMessageManager;
@@ -107,6 +108,12 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	private Answers answers;
 
 	@Inject
+	private VariableResolver variables;
+
+	// counts game ticks, for what is read every few
+	private int ticks;
+
+	@Inject
 	private SkillIconManager skillIconManager;
 
 	@Inject
@@ -159,6 +166,8 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		eventBus.register(sessionCommands);
 		// a hop takes a few game ticks to carry out
 		eventBus.register(worldHopper);
+		// for Ground Marker Variables' answers
+		eventBus.register(variables);
 		createSidePanel();
 		syncSidePanel();
 		loadWorldLocations();
@@ -252,6 +261,11 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	public void onGameStateChanged(GameStateChanged event)
 	{
 		refreshWorldPanel();
+		if (event.getGameState() == GameState.LOGIN_SCREEN)
+		{
+			// the previews are of a player who has logged out
+			customCommands.clearPreviews();
+		}
 		if (event.getGameState() != GameState.LOGGED_IN)
 		{
 			return;
@@ -270,6 +284,16 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 			{
 				say(NEWS);
 			}
+		}
+	}
+
+	// the previews of the custom commands, every few ticks
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		if (ticks++ % CustomCommands.PREVIEW_TICKS == 0)
+		{
+			customCommands.refreshPreviews(text -> variables.resolve(text, false));
 		}
 	}
 
@@ -309,6 +333,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(this);
 		eventBus.unregister(sessionCommands);
 		eventBus.unregister(worldHopper);
+		eventBus.unregister(variables);
 		clientToolbar.removeNavigation(sideButton);
 		sideButtonShown = false;
 		welcomePending = false;
@@ -400,11 +425,15 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		{
 			createDialog(frame);
 		}
+		// the pinned keep their place after the recently used, rather than moving up among them when used
+		final List<Command> pinned = RecentCommands.pick(commands, pinnedCommands.load(), PinnedCommands.MAX);
+		commands.removeAll(pinned);
 		final List<Command> recent = config.recentFirst()
 			? RecentCommands.pick(commands, recentCommands.load(), config.recentCount())
 			: Collections.emptyList();
 		commands.removeAll(recent);
-		panel.show(recent, commands, typed ->
+		typedCommands.forgetVariables();
+		panel.show(recent, pinned, commands, typed ->
 		{
 			final List<Command> typedOnes = new ArrayList<>(customCommands.forQuery(typed, byKey::get));
 			typedOnes.addAll(typedCommands.forQuery(typed));
@@ -506,6 +535,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 		dialog = new JDialog(frame);
 		panel = new PalettePanel(this);
 		typedCommands.setOnIconLoaded(panel::repaint);
+		typedCommands.setOnVariablesResolved(panel::requery);
 		dialog.setUndecorated(true);
 		dialog.getRootPane().setWindowDecorationStyle(JRootPane.NONE);
 		dialog.setResizable(false);

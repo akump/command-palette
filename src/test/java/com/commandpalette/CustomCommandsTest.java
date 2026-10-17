@@ -11,7 +11,7 @@ import org.junit.Test;
 
 public class CustomCommandsTest
 {
-	private static final String GE = "https://prices.runescape.wiki/osrs/search?q={text}";
+	private static final String GE = "https://prices.runescape.wiki/osrs/all-items?search={text}";
 
 	private static String problem(String name, CustomCommand.Action action, String value)
 	{
@@ -37,14 +37,25 @@ public class CustomCommandsTest
 		assertNull(problem("loot", CustomCommand.Action.COMMAND, "panel:Loot Tracker"));
 		assertTrue(problem("loot", CustomCommand.Action.COMMAND, "panel:Gone").startsWith("Pick a command"));
 		assertTrue(problem("cc", CustomCommand.Action.COPY, " ").startsWith("Type the text"));
+		assertNull(problem("brag", CustomCommand.Action.SHOW, "{rsn}: {kc toa} toa"));
+		assertTrue(problem("brag", CustomCommand.Action.SHOW, "").startsWith("Type the text to show"));
 	}
 
 	@Test
 	public void whatIsTypedGoesIntoTheLinkSafely()
 	{
-		assertEquals("https://prices.runescape.wiki/osrs/search?q=abyssal%20whip%20%26%20more",
+		assertEquals("https://prices.runescape.wiki/osrs/all-items?search=abyssal%20whip%20%26%20more",
 			CustomCommands.link(GE, "abyssal whip & more"));
-		assertEquals("https://prices.runescape.wiki/osrs/search?q=", CustomCommands.link(GE, ""));
+		assertEquals("https://prices.runescape.wiki/osrs/all-items?search=", CustomCommands.link(GE, ""));
+	}
+
+	@Test
+	public void copyingAndShowingTakeTextToo()
+	{
+		assertTrue(new CustomCommand("say", CustomCommand.Action.SHOW, "{rsn} wants {text}").takesText());
+		assertTrue(new CustomCommand("cp", CustomCommand.Action.COPY, "{text} please").takesText());
+		assertEquals("Zezima wants whips", CustomCommands.withText("Zezima wants {text}", "whips"));
+		assertEquals("Show {rsn}", new CustomCommand("me", CustomCommand.Action.SHOW, "{rsn}").describe(key -> null));
 	}
 
 	@Test
@@ -87,7 +98,7 @@ public class CustomCommandsTest
 	{
 		final List<CustomCommand> saved = new ArrayList<>(List.of(new CustomCommand("ge", CustomCommand.Action.LINK, GE),
 			new CustomCommand("cl", CustomCommand.Action.LINK, "https://example.com/log")));
-		final CustomCommands custom = new CustomCommands(null, new Gson(), null)
+		final CustomCommands custom = new CustomCommands(null, new Gson(), null, null)
 		{
 			@Override
 			List<CustomCommand> load()
@@ -99,6 +110,50 @@ public class CustomCommandsTest
 		// not without the text, and not for a link that takes none
 		assertEquals(List.of(), titles(custom.forQuery("ge", key -> null)));
 		assertEquals(List.of(), titles(custom.forQuery("cl something", key -> null)));
+	}
+
+	@Test
+	public void showingAndCopyingPreviewWhatTheyWouldGive()
+	{
+		final List<CustomCommand> saved = List.of(new CustomCommand("brag", CustomCommand.Action.SHOW, "{rsn}: {kc toa}"),
+			new CustomCommand("me", CustomCommand.Action.COPY, "{rsn}"),
+			new CustomCommand("cc", CustomCommand.Action.COPY, "Clan Chat"));
+		final CustomCommands custom = new CustomCommands(null, new Gson(), null, null)
+		{
+			@Override
+			List<CustomCommand> load()
+			{
+				return saved;
+			}
+		};
+		final List<Command> before = new ArrayList<>();
+		custom.collect(before, key -> null);
+		assertEquals("Show {rsn}: {kc toa}", before.get(0).getDetail());
+
+		custom.refreshPreviews(text -> text.replace("{rsn}", "Zezima").replace("{kc toa}", "58"));
+		final List<Command> after = new ArrayList<>();
+		custom.collect(after, key -> null);
+		assertEquals(List.of("Show Zezima: 58", "Copy Zezima", "Copy Clan Chat"),
+			List.of(after.get(0).getDetail(), after.get(1).getDetail(), after.get(2).getDetail()));
+
+		custom.clearPreviews();
+		final List<Command> loggedOut = new ArrayList<>();
+		custom.collect(loggedOut, key -> null);
+		assertEquals("Copy {rsn}", loggedOut.get(1).getDetail());
+	}
+
+	@Test
+	public void theExamplesAreFitToSave()
+	{
+		final List<String> names = new ArrayList<>();
+		for (CustomCommand example : CustomCommands.EXAMPLES)
+		{
+			assertNull(example.getName(), CustomCommand.problem(example.getName(), example.getAction(),
+				example.getValue(), names, key -> false));
+			names.add(example.getName());
+		}
+		assertEquals("https://wiseoldman.net/players/Zezima%20Two", VariableResolver.fill(
+			CustomCommands.EXAMPLES.get(1).getValue(), token -> "Zezima Two", true));
 	}
 
 	private static List<String> titles(List<Command> commands)

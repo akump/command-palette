@@ -11,7 +11,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
@@ -85,9 +87,10 @@ class PalettePanel extends JPanel
 	private final JLabel empty = new JLabel("No matching commands", SwingConstants.CENTER);
 
 	private List<Command> recent = Collections.emptyList();
+	private List<Command> pinned = Collections.emptyList();
 	private List<Command> commands = Collections.emptyList();
-	// the row that starts the commands after the recently used ones, when the list is in those two sections
-	private int firstOfRest = -1;
+	// the rows that start a section after the first, the pinned or the rest, when the list is in sections
+	private Set<Integer> sectionStarts = Collections.emptySet();
 	private boolean showIcons = true;
 	private Function<String, List<Command>> forQuery = query -> Collections.emptyList();
 
@@ -180,15 +183,19 @@ class PalettePanel extends JPanel
 	 * Start over with these commands and an empty search.
 	 *
 	 * @param recent    the recently used commands, which are listed first and set apart from the rest
+	 * @param pinned    the pinned commands, which are listed after them, set apart too
 	 * @param rest      every other command
 	 * @param forQuery  further commands made from the text typed, listed after the ones matching it
 	 * @param showIcons whether each command's icon is drawn before its name
 	 */
-	void show(List<Command> recent, List<Command> rest, Function<String, List<Command>> forQuery, boolean showIcons)
+	void show(List<Command> recent, List<Command> pinned, List<Command> rest,
+		Function<String, List<Command>> forQuery, boolean showIcons)
 	{
 		this.showIcons = showIcons;
 		this.recent = recent;
+		this.pinned = pinned;
 		this.commands = new ArrayList<>(recent);
+		this.commands.addAll(pinned);
 		this.commands.addAll(rest);
 		this.forQuery = forQuery;
 		if (search.getText().isEmpty())
@@ -198,6 +205,24 @@ class PalettePanel extends JPanel
 		else
 		{
 			search.setText("");
+		}
+	}
+
+	/**
+	 * Lists again the commands made from what is typed, which may have changed since it was typed, keeping the
+	 * selected row.
+	 */
+	void requery()
+	{
+		if (!isShowing())
+		{
+			return;
+		}
+		final int selected = list.getSelectedIndex();
+		refilter();
+		if (selected > 0 && selected < model.size())
+		{
+			select(selected);
 		}
 	}
 
@@ -223,13 +248,34 @@ class PalettePanel extends JPanel
 			model.addElement(command);
 		}
 		// a search puts the best matches first, wherever they came from
-		firstOfRest = search.getText().isEmpty() && !recent.isEmpty() && model.size() > recent.size()
-			? recent.size() : -1;
+		sectionStarts = search.getText().isEmpty()
+			? sectionStarts(List.of(recent.size(), pinned.size(), model.size() - recent.size() - pinned.size()))
+			: Collections.emptySet();
 		list.setVisibleRowCount(Math.min(model.size(), MAX_ROWS));
 		scroll.setVisible(!model.isEmpty());
 		empty.setVisible(model.isEmpty());
 		select(0);
 		listener.resized();
+	}
+
+	/**
+	 * The first row of each section after the first, a line drawn above it, leaving out the empty ones.
+	 *
+	 * @param sizes how many rows each section has, in order
+	 */
+	static Set<Integer> sectionStarts(List<Integer> sizes)
+	{
+		final Set<Integer> starts = new HashSet<>();
+		int row = 0;
+		for (int size : sizes)
+		{
+			if (size > 0 && row > 0)
+			{
+				starts.add(row);
+			}
+			row += size;
+		}
+		return starts;
 	}
 
 	private void keyPressed(KeyEvent e)
@@ -322,8 +368,9 @@ class PalettePanel extends JPanel
 			title.setIcon(!showIcons ? null : command.getIcon() == null ? NO_ICON : command.getIcon());
 			title.setForeground(selected ? ColorScheme.BRAND_ORANGE : ColorScheme.TEXT_COLOR);
 			detail.setText(command.getDetail());
-			detail.setIcon(showIcons && recent.contains(command) ? Icons.RECENT : null);
-			setBorder(index == firstOfRest ? SECTION_BORDER : ROW_BORDER);
+			detail.setIcon(!showIcons ? null : recent.contains(command) ? Icons.RECENT
+				: pinned.contains(command) ? Icons.PIN_FILLED : null);
+			setBorder(sectionStarts.contains(index) ? SECTION_BORDER : ROW_BORDER);
 			fitDetail();
 			setBackground(selected ? ColorScheme.DARKER_GRAY_HOVER_COLOR : ColorScheme.DARKER_GRAY_COLOR);
 			return this;

@@ -16,7 +16,7 @@ key opens the palette on its own, except while you are typing: in a text field, 
 the game's input boxes such as the bank search. While the Key Remapping plugin keeps typing out of the chat until
 `Enter`, the key opens the palette.
 
-<img src="docs/palette.png" alt="The command palette as it opens: the commands used last above a line, then side panels to open and client utilities" width="334">
+<img src="docs/palette.png" alt="The command palette as it opens: the commands used last, then the pinned ones, each section set apart by a line, then side panels to open and client utilities" width="334">
 
 | Key | Action |
 | --- | --- |
@@ -28,8 +28,10 @@ the game's input boxes such as the bank search. While the Key Remapping plugin k
 
 The last eight commands you ran are listed first, latest first, in a section of their own: a line sets them
 apart from the rest and each has a clock at the end of its row. **Recently used count** in the settings changes
-how many, from 1 to 20. The section can be turned off there, and so can the icons. Once you type, the best
-matches come first whichever section they were in, and the recently used ones keep their clock.
+how many, from 1 to 20. The section can be turned off there, and so can the icons. The commands you have
+pinned in the side panel's Pinned tab come next, in a section of their own with a pin at the end of each row;
+a pinned command stays in its section rather than moving up among the recently used. Once you type, the best
+matches come first whichever section they were in, and they keep their clock or pin.
 
 ## Commands
 
@@ -66,6 +68,7 @@ These are made from what you type, so they aren't in the list until you do.
 | `ticks 250` or `ticks 2m30s` | Converts game ticks of 0.6 seconds to time, or time to ticks. `Enter` copies the line. Time is written `90s`, `2m30s`, `1h 5m` or `1:30`. |
 | `alch rune platebody` or `price ...` | Lists up to five matching tradeable items; running one prints its GE price and high alch value in chat (logged in only) |
 | `xp 92 slayer` | Shows the xp you still need for that level, and prints it in chat. Leave the level out for your next one. (logged in only) |
+| `{lvl_agility}` | Fills in a [variable](#variables) and shows its value; `Enter` copies it and keeps it in the Answers tab. Any text with variables works: `{rsn} is {lvl_total} total`. |
 
 ### Timers
 
@@ -140,16 +143,52 @@ the name you will type, and choose what it does:
 
 | Does | Example |
 | --- | --- |
-| Open a link | `ge` opening `https://prices.runescape.wiki/osrs/search?q={text}`: whatever you type after the name goes in place of `{text}`, so `ge abyssal whip` searches for the whip. A link without `{text}` just opens. |
+| Open a link | `ge` opening `https://prices.runescape.wiki/osrs/all-items?search={text}`: whatever you type after the name goes in place of `{text}`, so `ge abyssal whip` searches for the whip. A link without `{text}` just opens. |
 | Start a timer | `herbs` starting `80m herb run` |
 | Run a palette command | `loot` opening the Loot Tracker panel, or a plugin's settings, a world, a tab of the side panel |
 | Copy text | `cc` copying your clan chat's name |
+| Show text in the chat | `brag` showing `{rsn}: {kc toa} toa, {kc cox} cox` in the chat, where only you see it, and keeping it in the Answers tab |
+
+Links, copied text and shown text can have [variables](#variables) in them, filled in when the command runs; in a
+link each value is made safe for it, so `https://templeosrs.com/player/overview.php?player={rsn}` works. Copied
+and shown text can take `{text}` as well.
+
+The tab's **Variables** section lists every variable there is to use, with what each fills in: in the list,
+clicking one copies it; in the editor, under **Save**, clicking one puts it in the link or text where the cursor
+is.
+
+A command that shows or copies text with variables in it says in the palette what it would give, filled in,
+while you are logged in: `brag  Show Zezima: total 1,850, combat 110`.
+
+With no commands yet, the tab offers examples to start from, such as `wom`, `hiscores` and `temple` opening those
+sites' pages for your name, `brag`, and `ge` searching the Grand Exchange prices; **Add some to start** adds a
+few. The examples stay listed under your own commands, behind **Show**.
 
 Custom commands are listed, searched, remembered as recently used and pinned like any other. They are kept in each
 RuneLite profile's settings. None of them can act on the game: they only do what the palette's own commands do,
 and one can't run another.
 
-<img src="docs/custom-commands.png" alt="The Custom tab listing five commands, and its editor making a command that searches the Grand Exchange prices" width="400">
+<img src="docs/custom-commands.png" alt="The Custom tab listing six commands; its editor making a command that searches the Grand Exchange prices; and the tab with none yet, offering examples" width="600">
+
+### Variables
+
+A variable is a name in braces that is filled in with what the client shows: `{rsn}`. The palette knows these by
+itself:
+
+| Variable | Filled in with |
+| --- | --- |
+| `{rsn}`, `{world}` | Your name and world (logged in) |
+| `{time}`, `{time24}`, `{date}`, `{weekday}` | `8:21 pm`, `20:21`, `October 16th 2026`, `Friday` |
+| `{lvl_agility}`, `{boost_agility}`, `{xp_agility}` | A skill's level, boosted level and xp, for any skill by name; `{lvl_total}` and `{lvl_combat}` too (logged in) |
+
+With the [Ground Marker Variables](https://github.com/Limy-Monkey/Ground-Marker-Variables) plugin installed, every
+variable it has works as well, asked of it through RuneLite's plugin messages: kill counts (`{kc zulrah}`),
+personal bests, loot, your slayer task, special attack, items, sums of them (`{kc cox + kc cm}`) and
+conditions. Each gives its bare value; write `{&kc zulrah}` for its labelled one, as that plugin shows on a tile: `{&loot Tombs of Amascut}` gives the kills, the gp and the best items, by name. A variable that can't be filled in is left as it was, braces and all. Reading a variable only reads what the
+client already knows.
+
+To keep lines with variables on screen, over the game, with alerts and their history, see the companion
+**Variable Watch** plugin.
 
 ## Settings
 
@@ -159,7 +198,7 @@ and one can't run another.
 | Require Ctrl/Cmd | On | Hold Cmd (Mac) or Ctrl (Windows/Linux) with the hotkey, or the Platform Keys plugin's choice when it is on |
 | Recently used first | On | List the commands you ran last first, in a section of their own |
 | Recently used count | 8 | How many of them, from 1 to 20 |
-| Show icons | On | An icon before each command, and a clock after a recently used one |
+| Show icons | On | An icon before each command, and a clock after a recently used one or a pin after a pinned one |
 | Side panel | On | The [Command Palette panel](#the-side-panel) in the sidebar |
 | **Commands** | | |
 | Side panels | On | A command per side panel, and ones to close the open panel and hide or show the sidebar |

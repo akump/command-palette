@@ -10,8 +10,11 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.swing.Icon;
@@ -30,18 +33,39 @@ class CustomCommands
 	static final String KIND = "custom:";
 	static final int MAX = 100;
 
+	// how often, in game ticks, what the commands with variables would show or copy is read again
+	static final int PREVIEW_TICKS = 5;
+
+	/**
+	 * Commands to start from, most of them with the player's name filled in.
+	 */
+	static final List<CustomCommand> EXAMPLES = List.of(
+		new CustomCommand("ge", CustomCommand.Action.LINK, "https://prices.runescape.wiki/osrs/all-items?search={text}"),
+		new CustomCommand("wom", CustomCommand.Action.LINK, "https://wiseoldman.net/players/{rsn}"),
+		new CustomCommand("hiscores", CustomCommand.Action.LINK,
+			"https://secure.runescape.com/m=hiscore_oldschool/hiscorepersonal?user1={rsn}"),
+		new CustomCommand("brag", CustomCommand.Action.SHOW, "{rsn}: total {lvl_total}, combat {lvl_combat}"),
+		new CustomCommand("temple", CustomCommand.Action.LINK, "https://templeosrs.com/player/overview.php?player={rsn}"),
+		new CustomCommand("clog", CustomCommand.Action.LINK,
+			"https://templeosrs.com/player/collection-log.php?player={rsn}"),
+		new CustomCommand("rsn", CustomCommand.Action.COPY, "{rsn}"));
+
 	private static final String CONFIG_KEY = "customCommands";
 
 	private final ConfigManager configManager;
 	private final Gson gson;
 	private final TypedCommands typedCommands;
+	private final VariableResolver variables;
+	// what each command that shows or copies text with variables in it would, by name, read every few ticks
+	private volatile Map<String, String> previews = Collections.emptyMap();
 
 	@Inject
-	CustomCommands(ConfigManager configManager, Gson gson, TypedCommands typedCommands)
+	CustomCommands(ConfigManager configManager, Gson gson, TypedCommands typedCommands, VariableResolver variables)
 	{
 		this.configManager = configManager;
 		this.gson = gson;
 		this.typedCommands = typedCommands;
+		this.variables = variables;
 	}
 
 	List<CustomCommand> load()
@@ -116,7 +140,7 @@ class CustomCommands
 	}
 
 	/**
-	 * For a link that takes text, a command to open it with whatever is typed after its name: "ge abyssal whip".
+	 * For one that takes text, a command to run it with whatever is typed after its name: "ge abyssal whip".
 	 */
 	List<Command> forQuery(String typed, Function<String, Command> find)
 	{
@@ -136,8 +160,46 @@ class CustomCommands
 		return commands;
 	}
 
-	private static String describe(CustomCommand custom, Function<String, Command> find)
+	/**
+	 * Reads again what each command that shows or copies text with variables in it would, on the client thread.
+	 *
+	 * @param resolve fills in the variables of a text
+	 */
+	void refreshPreviews(Function<String, String> resolve)
 	{
+		final Map<String, String> next = new HashMap<>();
+		for (CustomCommand custom : load())
+		{
+			if (isPreviewed(custom))
+			{
+				next.put(custom.getName(), resolve.apply(custom.getValue()));
+			}
+		}
+		previews = next;
+	}
+
+	/**
+	 * Forgets the previews, which are of a player who has logged out.
+	 */
+	void clearPreviews()
+	{
+		previews = Collections.emptyMap();
+	}
+
+	private static boolean isPreviewed(CustomCommand custom)
+	{
+		return (custom.getAction() == CustomCommand.Action.SHOW || custom.getAction() == CustomCommand.Action.COPY)
+			&& VariableResolver.hasVariables(custom.getValue());
+	}
+
+	// what it shows or copies with its variables filled in, when they have been read
+	private String describe(CustomCommand custom, Function<String, Command> find)
+	{
+		final String preview = isPreviewed(custom) ? previews.get(custom.getName()) : null;
+		if (preview != null && !preview.equals(custom.getValue()))
+		{
+			return (custom.getAction() == CustomCommand.Action.SHOW ? "Show " : "Copy ") + preview;
+		}
 		return custom.describe(key ->
 		{
 			final Command target = find.apply(key);
@@ -156,6 +218,8 @@ class CustomCommands
 			case COMMAND:
 				final Command target = find.apply(custom.getValue());
 				return target == null || target.getIcon() == null ? Icons.PROMPT : target.getIcon();
+			case SHOW:
+				return Icons.CHAT;
 			default:
 				return Icons.CLIPBOARD;
 		}
@@ -166,7 +230,8 @@ class CustomCommands
 		switch (custom.getAction())
 		{
 			case LINK:
-				LinkBrowser.browse(link(custom.getValue(), text));
+				// each variable's value is made safe for a link, and then what was typed is
+				fill(custom.getValue(), true, url -> LinkBrowser.browse(link(url, text)));
 				break;
 			case TIMER:
 				final Timers.Request timer = Timers.parse(custom.getValue());
@@ -182,10 +247,32 @@ class CustomCommands
 					target.run();
 				}
 				break;
+			case SHOW:
+				fill(withText(custom.getValue(), text), false, shown -> typedCommands.show(shown, Icons.CHAT));
+				break;
 			default:
-				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(custom.getValue()), null);
+				fill(withText(custom.getValue(), text), false, copied ->
+					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(copied), null));
 				break;
 		}
+	}
+
+	// the variables are read on the client thread, so only text that has some waits for it
+	private void fill(String text, boolean encode, Consumer<String> then)
+	{
+		if (VariableResolver.hasVariables(text))
+		{
+			variables.resolveLater(text, encode, then);
+		}
+		else
+		{
+			then.accept(text);
+		}
+	}
+
+	static String withText(String value, String text)
+	{
+		return value.replace(CustomCommand.TEXT, text);
 	}
 
 	/**

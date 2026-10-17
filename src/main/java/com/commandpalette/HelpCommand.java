@@ -98,6 +98,8 @@ class HelpCommand
 			commands.row("ticks 250", "Game ticks as time; ticks 2m30s for the reverse");
 			commands.row("alch rune platebody", "An item's price and alch value (logged in)");
 			commands.row("xp 92 slayer", "The xp left to that level (logged in)");
+			commands.row("{lvl_agility}", "A variable's value: {rsn}, {world}, {xp_slayer}, and with Ground Marker"
+				+ " Variables {kc zulrah} and the rest");
 		}
 		if (config.timerCommands())
 		{
@@ -120,7 +122,7 @@ class HelpCommand
 			+ " <b>plugin</b> or <b>favourite</b>.");
 		if (config.recentFirst())
 		{
-			tips.note("The commands you ran last are listed first, above a line.");
+			tips.note("The commands you ran last are listed first, then the ones you pinned, each above a line.");
 		}
 		if (config.sidePanel())
 		{

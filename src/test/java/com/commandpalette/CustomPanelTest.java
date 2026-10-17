@@ -56,6 +56,41 @@ public class CustomPanelTest
 	}
 
 	@Test
+	public void startersAreAddedWithoutTakingANameTwice()
+	{
+		saved = new ArrayList<>(List.of(new CustomCommand("WOM", CustomCommand.Action.COPY, "mine")));
+		panel.refresh();
+		panel.addStarters();
+		final List<String> names = new ArrayList<>();
+		saved.forEach(c -> names.add(c.getName()));
+		assertEquals(List.of("WOM", "ge", "hiscores", "brag"), names);
+	}
+
+	@Test
+	public void aVariableClickedGoesWhereTheCursorIs()
+	{
+		panel.openEditor(null);
+		panel.getAction().setSelectedItem(CustomCommand.Action.SHOW);
+		panel.getValueField().setText("Me:  total");
+		panel.getValueField().setCaretPosition(4);
+		panel.insert("{rsn}");
+		assertEquals("Me: {rsn} total", panel.getValueField().getText());
+	}
+
+	@Test
+	public void everyVariableListedIsOne()
+	{
+		final List<VariableCatalog.Variable> all = new ArrayList<>(VariableCatalog.OWN);
+		all.addAll(VariableCatalog.GROUND_MARKER_VARIABLES);
+		for (VariableCatalog.Variable variable : all)
+		{
+			assertTrue(variable.getToken(), VariableResolver.hasVariables(variable.getToken()));
+		}
+		// filled in from what is typed, not as a variable
+		assertFalse(VariableResolver.hasVariables(VariableCatalog.TEXT.getToken()));
+	}
+
+	@Test
 	public void aNewCommandIsSaved()
 	{
 		panel.refresh();

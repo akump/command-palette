@@ -228,7 +228,7 @@ public class DemoGifTest
 			{
 			}
 		});
-		panel.show(List.of(), commands, typed -> forQuery(typed, slayer), true);
+		panel.show(List.of(), List.of(), commands, typed -> forQuery(typed, slayer), true);
 		window = new JWindow();
 		window.setContentPane(panel);
 		window.pack();

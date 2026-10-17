@@ -291,6 +291,31 @@ enum Icons implements Icon
 				g.draw(chevron);
 				line(g, 31, 41, 46, 41);
 			}
+		},
+	CHAT
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// a speech bubble, for text shown in the chat
+				final Path2D bubble = new Path2D.Double();
+				bubble.append(new RoundRectangle2D.Double(7, 10, 50, 34, 12, 12), false);
+				g.draw(bubble);
+				final Path2D tail = new Path2D.Double();
+				tail.moveTo(18, 44);
+				tail.lineTo(14, 56);
+				tail.lineTo(30, 44);
+				g.draw(tail);
+			}
+		},
+	BRACES
+		{
+			@Override
+			void draw(Graphics2D g)
+			{
+				// for a variable, "{rsn}"
+				text(g, "{ }", 40);
+			}
 		};
 
 	static final int SIZE = 16;

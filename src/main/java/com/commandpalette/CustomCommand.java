@@ -19,7 +19,8 @@ final class CustomCommand
 		LINK("Open a link"),
 		TIMER("Start a timer"),
 		COMMAND("Run a palette command"),
-		COPY("Copy text");
+		COPY("Copy text"),
+		SHOW("Show text in the chat");
 
 		private final String label;
 
@@ -61,7 +62,8 @@ final class CustomCommand
 	}
 
 	/**
-	 * The link, the timer ("80m herb run"), the key of the palette command, or the text to copy.
+	 * The link, the timer ("80m herb run"), the key of the palette command, or the text to copy or show, any of
+	 * which but the timer and the command can have variables in it: "{rsn}".
 	 */
 	String getValue()
 	{
@@ -92,11 +94,11 @@ final class CustomCommand
 	}
 
 	/**
-	 * Whether what is typed after its name is put into its link.
+	 * Whether what is typed after its name is put into its link or text.
 	 */
 	boolean takesText()
 	{
-		return action == Action.LINK && value.contains(TEXT);
+		return action != Action.TIMER && action != Action.COMMAND && value.contains(TEXT);
 	}
 
 	/**
@@ -116,6 +118,8 @@ final class CustomCommand
 			case COMMAND:
 				final String title = titleOf.apply(value);
 				return title == null ? "Command not available now" : "Run " + title;
+			case SHOW:
+				return "Show " + value;
 			default:
 				return "Copy " + value;
 		}
@@ -166,6 +170,8 @@ final class CustomCommand
 					: "Start with a length of time, up to a day, then what it is for: 80m herb run.";
 			case COMMAND:
 				return exists.apply(v) ? null : "Pick a command to run.";
+			case SHOW:
+				return v.isEmpty() ? "Type the text to show." : null;
 			default:
 				return v.isEmpty() ? "Type the text to copy." : null;
 		}

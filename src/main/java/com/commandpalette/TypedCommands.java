@@ -49,13 +49,20 @@ class TypedCommands
 	private final CommandPaletteConfig config;
 	private final Timers timers;
 	private final Answers answers;
+	private final VariableResolver variables;
 
 	private Runnable onIconLoaded = () -> {};
+	private Runnable onVariablesResolved = () -> {};
+	// what was typed with variables in it, and the last text filled in for it, both on the Swing thread
+	private String asked;
+	private String resolvedFor;
+	private String resolved;
 
 	@Inject
 	TypedCommands(Client client, ClientThread clientThread, ItemManager itemManager, SkillIconManager skillIconManager,
-		CommandPaletteConfig config, Timers timers, Answers answers)
+		CommandPaletteConfig config, Timers timers, Answers answers, VariableResolver variables)
 	{
+		this.variables = variables;
 		this.answers = answers;
 		this.timers = timers;
 		this.client = client;
@@ -73,6 +80,24 @@ class TypedCommands
 		this.onIconLoaded = onIconLoaded;
 	}
 
+	/**
+	 * @param onVariablesResolved run on the Swing thread when variables typed in have been filled in, to list
+	 *                            them again
+	 */
+	void setOnVariablesResolved(Runnable onVariablesResolved)
+	{
+		this.onVariablesResolved = onVariablesResolved;
+	}
+
+	/**
+	 * Forgets what variables were last filled in as, so that they are read again: the palette is opening.
+	 */
+	void forgetVariables()
+	{
+		resolvedFor = null;
+		resolved = null;
+	}
+
 	List<Command> forQuery(String typed)
 	{
 		final Query query = Query.parse(typed);
@@ -88,6 +113,7 @@ class TypedCommands
 		final List<Command> commands = new ArrayList<>();
 		if (config.lookupCommands())
 		{
+			variables(query.getText(), commands);
 			calculation(query.getText(), commands);
 			dryStreak(query.getText(), commands);
 			answer(TAX, query.getText(), GeTax::describe, Icons.EQUALS, commands);
@@ -118,6 +144,48 @@ class TypedCommands
 		}
 		return Collections.singletonList(new Command("Search the wiki for \"" + search + "\"", "", Icons.SEARCH,
 			() -> LinkBrowser.browse(WIKI_SEARCH + URLEncoder.encode(search, StandardCharsets.UTF_8))));
+	}
+
+	// "{kc zulrah}" as its value: read on the client thread, and listed once it is back
+	private void variables(String text, List<Command> out)
+	{
+		if (!VariableResolver.hasVariables(text))
+		{
+			return;
+		}
+		if (!text.equals(resolvedFor))
+		{
+			if (!text.equals(asked))
+			{
+				asked = text;
+				variables.resolveLater(text, false, answer ->
+				{
+					resolvedFor = text;
+					resolved = answer;
+					asked = null;
+					onVariablesResolved.run();
+				});
+			}
+			return;
+		}
+		if (resolved.equals(text))
+		{
+			// nothing in it is a variable that could be read just now
+			return;
+		}
+		final String value = resolved;
+		final String answer = isOneToken(text) ? text + " = " + value : value;
+		out.add(new Command(value, "Copy", Icons.BRACES, () ->
+		{
+			copy(value);
+			answers.add(answer, value, Icons.BRACES);
+		}));
+	}
+
+	private static boolean isOneToken(String text)
+	{
+		final List<int[]> tokens = VariableResolver.tokens(text);
+		return tokens.size() == 1 && tokens.get(0)[0] == 0 && tokens.get(0)[1] == text.length();
 	}
 
 	private void calculation(String text, List<Command> out)
@@ -183,6 +251,22 @@ class TypedCommands
 			if (client.getGameState() == GameState.LOGGED_IN)
 			{
 				say("Started " + request.describe());
+			}
+		});
+	}
+
+	/**
+	 * Keeps the answer in the side panel's Answers tab, and shows it in the chat when logged in, where only the
+	 * player sees it.
+	 */
+	void show(String answer, Icon icon)
+	{
+		answers.add(answer, icon);
+		clientThread.invoke(() ->
+		{
+			if (client.getGameState() == GameState.LOGGED_IN)
+			{
+				say(answer);
 			}
 		});
 	}

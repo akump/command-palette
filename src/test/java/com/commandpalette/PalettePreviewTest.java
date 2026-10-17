@@ -84,7 +84,7 @@ public class PalettePreviewTest
 			{
 			}
 		});
-		panel.show(recent, commands, typed -> TypedCommands.wikiSearch(Query.parse(typed).getText()), showIcons);
+		panel.show(recent, List.of(), commands, typed -> TypedCommands.wikiSearch(Query.parse(typed).getText()), showIcons);
 		panel.getSearch().setText(query);
 
 		// Swing only lays out the rows of a list that belongs to a window, which needn't be shown

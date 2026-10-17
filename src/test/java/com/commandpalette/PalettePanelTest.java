@@ -4,6 +4,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.swing.JTextField;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class PalettePanelTest
 		{
 			commands.add(new Command("Panel " + i, "Open panel", null, () -> {}));
 		}
-		panel.show(List.of(), commands, query -> TypedCommands.wikiSearch(Query.parse(query).getText()), true);
+		panel.show(List.of(), List.of(), commands, query -> TypedCommands.wikiSearch(Query.parse(query).getText()), true);
 	}
 
 	// Key events dispatched to a field that isn't on screen go nowhere, so hand them to its listeners directly
@@ -135,11 +136,36 @@ public class PalettePanelTest
 	{
 		final Command recent = new Command("Panel 9", "Open panel", null, () -> {});
 		final Command rest = new Command("Panel 1", "Open panel", null, () -> {});
-		panel.show(List.of(recent), List.of(rest), query -> List.of(), true);
+		panel.show(List.of(recent), List.of(), List.of(rest), query -> List.of(), true);
 		press(KeyEvent.VK_ENTER, 0);
 		panel.getSearch().setText("panel 1");
 		press(KeyEvent.VK_ENTER, 0);
 		assertEquals(List.of("run Panel 9", "run Panel 1"), events);
+	}
+
+	@Test
+	public void pinnedCommandsComeAfterTheRecentAndBeforeTheRest()
+	{
+		final Command recent = new Command("Panel 9", "Open panel", null, () -> {});
+		final Command pinned = new Command("Panel 5", "Open panel", null, () -> {});
+		final Command rest = new Command("Panel 1", "Open panel", null, () -> {});
+		panel.show(List.of(recent), List.of(pinned), List.of(rest), query -> List.of(), true);
+		press(KeyEvent.VK_DOWN, 0);
+		press(KeyEvent.VK_ENTER, 0);
+		assertEquals(List.of("run Panel 5"), events);
+	}
+
+	@Test
+	public void eachSectionAfterTheFirstStartsWithALine()
+	{
+		// recent, pinned and the rest
+		assertEquals(Set.of(2, 5), PalettePanel.sectionStarts(List.of(2, 3, 10)));
+		// no recent: the pinned come first, with no line above them
+		assertEquals(Set.of(3), PalettePanel.sectionStarts(List.of(0, 3, 10)));
+		// nothing pinned
+		assertEquals(Set.of(2), PalettePanel.sectionStarts(List.of(2, 0, 10)));
+		// only the rest
+		assertEquals(Set.of(), PalettePanel.sectionStarts(List.of(0, 0, 10)));
 	}
 
 	// the renderer, set up for the command, laid out as wide as a row of the palette

@@ -85,7 +85,7 @@ public class DocsImagesTest
 		ImageIO.write(images[2], "png", new File(dir, "custom-commands.png"));
 	}
 
-	// the palette as it opens, the recently used commands first
+	// the palette as it opens, the recently used commands first, then the pinned
 	private static BufferedImage palette()
 	{
 		final List<Command> recent = List.of(
@@ -94,6 +94,9 @@ public class DocsImagesTest
 			new Command("Loot Tracker", SidebarCommands.OPEN_DETAIL, icon(PLUGINS + "loottracker/panel_icon.png"),
 				() -> {}),
 			new Command("Timers", "Open in the Command Palette panel", Icons.TIMER, () -> {}));
+		final List<Command> pinned = List.of(
+			new Command("Screen Markers", "Open settings", Icons.COG, () -> {}),
+			new Command("Previous world", "World 302", Icons.RECENT, () -> {}));
 		final List<Command> commands = new ArrayList<>();
 		final String[][] panels = {
 			{"Configuration", "config/config_icon.png"},
@@ -128,7 +131,7 @@ public class DocsImagesTest
 			{
 			}
 		});
-		panel.show(recent, commands, typed -> List.of(), true);
+		panel.show(recent, pinned, commands, typed -> List.of(), true);
 		return paint(panel, null);
 	}
 
@@ -149,8 +152,24 @@ public class DocsImagesTest
 		{
 			panel.openEditor(null);
 			panel.getNameField().setText("ge");
-			panel.getValueField().setText("https://prices.runescape.wiki/osrs/search?q={text}");
-		})));
+			panel.getValueField().setText("https://prices.runescape.wiki/osrs/all-items?search={text}");
+		}), emptyCustom()));
+	}
+
+	// the Custom tab before any are made, offering examples
+	private static BufferedImage emptyCustom()
+	{
+		final Map<SidePanel.Tab, SideTab> contents = new EnumMap<>(SidePanel.Tab.class);
+		for (SidePanel.Tab tab : SidePanel.Tab.values())
+		{
+			contents.put(tab, tab == SidePanel.Tab.CUSTOM ? new CustomPanel(List::of, commands -> {}, List::of)
+				: new AnswersPanel(new Answers()));
+		}
+		final SidePanel side = new SidePanel(contents, () -> "Cmd+P", () -> {});
+		side.select(SidePanel.Tab.CUSTOM);
+		final BufferedImage image = paint(side, SIDE_PANEL_HEIGHT);
+		side.stop();
+		return image;
 	}
 
 	private static BufferedImage sideBySide(List<BufferedImage> tabs)
@@ -261,11 +280,12 @@ public class DocsImagesTest
 	private static CustomPanel custom()
 	{
 		final List<CustomCommand> saved = List.of(
-			new CustomCommand("ge", CustomCommand.Action.LINK, "https://prices.runescape.wiki/osrs/search?q={text}"),
+			new CustomCommand("ge", CustomCommand.Action.LINK, "https://prices.runescape.wiki/osrs/all-items?search={text}"),
 			new CustomCommand("herbs", CustomCommand.Action.TIMER, "80m herb run"),
 			new CustomCommand("birds", CustomCommand.Action.TIMER, "50m birdhouses"),
 			new CustomCommand("loot", CustomCommand.Action.COMMAND, "panel:Loot Tracker"),
-			new CustomCommand("cc", CustomCommand.Action.COPY, "Clan Chat"));
+			new CustomCommand("cc", CustomCommand.Action.COPY, "Clan Chat"),
+			new CustomCommand("brag", CustomCommand.Action.SHOW, "{rsn}: {kc toa} toa, {kc cox} cox"));
 		final List<Command> available = List.of(new Command("panel:Loot Tracker", "Loot Tracker",
 			SidebarCommands.OPEN_DETAIL, null, () -> {}));
 		return new CustomPanel(() -> saved, commands -> {}, () -> available);
