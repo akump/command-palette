@@ -8,9 +8,14 @@ import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -115,7 +120,8 @@ class WorldPanel extends SideTab
 	private final JComboBox<Sort> sort = new JComboBox<>(Sort.values());
 	private final JButton hopButton = new JButton();
 	private final JButton backButton = new JButton();
-	private final DefaultListModel<World> model = new DefaultListModel<>();
+	// replaced whole on each change, as filling the list's own model a row at a time lays the list out for each
+	private DefaultListModel<World> model = new DefaultListModel<>();
 	private final JList<World> list = new JList<>(model)
 	{
 		// A list is as wide as its widest row would like, which a long detail made wider than the panel, pushing
@@ -138,6 +144,13 @@ class WorldPanel extends SideTab
 	// the highlighted world's number, kept while the list is refreshed, or -1
 	private int highlighted = -1;
 	private int hovered = -1;
+	// each world's detail, worked out once per show rather than for every row drawn: plain to search, and as HTML
+	private Map<Integer, String> details = Map.of();
+	private Map<Integer, String> htmlDetails = Map.of();
+	// the HTML the rows were last laid out with, to tell whether a refresh changed anything
+	private Map<Integer, String> shownHtml = Map.of();
+	// while the search and filter are reset together, which would each rebuild the list
+	private boolean resetting;
 
 	/**
 	 * @param refresh      calls {@link #show} with the worlds as they are now
@@ -277,12 +290,36 @@ class WorldPanel extends SideTab
 	void show(List<World> worlds, Function<World, WorldLocation> location, IntPredicate favourite, int current,
 		int previous, boolean canHop)
 	{
+		// asked once per world here: it is a settings lookup, and sorting would ask it many times over
+		final Set<Integer> favourites = new HashSet<>();
+		final Map<Integer, String> details = new HashMap<>();
+		final Map<Integer, String> htmlDetails = new HashMap<>();
+		for (World world : worlds)
+		{
+			final boolean isFavourite = favourite.test(world.getId());
+			if (isFavourite)
+			{
+				favourites.add(world.getId());
+			}
+			final WorldLocation place = location.apply(world);
+			final String detail = WorldCommands.detail(world, place, isFavourite, world.getId() == current);
+			details.put(world.getId(), detail);
+			String html = escape(detail);
+			if (place != null)
+			{
+				// "US West" kept on one line
+				html = html.replace(place.getName(), place.getName().replace(" ", "&nbsp;"));
+			}
+			htmlDetails.put(world.getId(), "<html>" + html + "</html>");
+		}
 		this.location = location;
-		this.favourite = favourite;
+		this.favourite = favourites::contains;
 		this.current = current;
 		this.previous = previous;
 		this.canHop = canHop;
 		this.worlds = worlds;
+		this.details = details;
+		this.htmlDetails = htmlDetails;
 		filter();
 	}
 
@@ -292,8 +329,16 @@ class WorldPanel extends SideTab
 	void highlight(int world)
 	{
 		// the world mustn't be hidden by an earlier search or filter
-		search.setText("");
-		membership.setSelectedItem(Membership.ALL);
+		resetting = true;
+		try
+		{
+			search.setText("");
+			membership.setSelectedItem(Membership.ALL);
+		}
+		finally
+		{
+			resetting = false;
+		}
 		refresh.run();
 		select(world);
 		// once the sidebar has opened and laid the list out
@@ -332,16 +377,30 @@ class WorldPanel extends SideTab
 
 	private void filter()
 	{
+		if (resetting)
+		{
+			return;
+		}
 		final int keep = highlighted;
 		final String query = search.getText();
-		final Membership shown = (Membership) membership.getSelectedItem();
-		model.clear();
+		final Membership membershipShown = (Membership) membership.getSelectedItem();
+		final List<World> shown = new ArrayList<>();
 		for (World world : ordered(worlds, favourite, (Sort) sort.getSelectedItem()))
 		{
-			if (shown.test(world) && matches(world, detail(world), query))
+			if (membershipShown.test(world) && matches(world, detail(world), query))
 			{
-				model.addElement(world);
+				shown.add(world);
 			}
+		}
+		// Opening the tab refreshes it a few times over: the same rows needn't be laid out again, which renders
+		// every one of them
+		if (!shown.equals(Collections.list(model.elements())) || !htmlDetails.equals(shownHtml))
+		{
+			final DefaultListModel<World> next = new DefaultListModel<>();
+			next.addAll(shown);
+			model = next;
+			list.setModel(next);
+			shownHtml = htmlDetails;
 		}
 		// a world hidden by the search stays highlighted, to show again when the search is cleared
 		select(keep);
@@ -380,8 +439,7 @@ class WorldPanel extends SideTab
 
 	private String detail(World world)
 	{
-		return WorldCommands.detail(world, location.apply(world), favourite.test(world.getId()),
-			world.getId() == current);
+		return details.getOrDefault(world.getId(), "");
 	}
 
 	private void select(int world)
@@ -541,14 +599,7 @@ class WorldPanel extends SideTab
 			title.setIcon(WorldCommands.icon(world, location.apply(world)));
 			title.setForeground(selected ? ColorScheme.BRAND_ORANGE : ColorScheme.TEXT_COLOR);
 			players.setText(world.getPlayers() < 0 ? "" : QuantityFormatter.formatNumber(world.getPlayers()));
-			String html = escape(WorldPanel.this.detail(world));
-			final WorldLocation place = location.apply(world);
-			if (place != null)
-			{
-				// "US West" kept on one line
-				html = html.replace(place.getName(), place.getName().replace(" ", "&nbsp;"));
-			}
-			detail.setText("<html>" + html + "</html>");
+			detail.setText(htmlDetails.getOrDefault(world.getId(), ""));
 			setBorder(selected ? HIGHLIGHT_BORDER : ROW_BORDER);
 			setBackground(selected || index == hovered ? ColorScheme.DARKER_GRAY_HOVER_COLOR
 				: ColorScheme.DARKER_GRAY_COLOR);
