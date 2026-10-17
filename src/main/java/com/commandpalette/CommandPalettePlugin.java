@@ -1,10 +1,7 @@
 package com.commandpalette;
 
 import com.google.inject.Provides;
-import java.awt.Component;
 import java.awt.Container;
-import java.awt.KeyEventDispatcher;
-import java.awt.KeyboardFocusManager;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -22,7 +19,6 @@ import javax.swing.JFrame;
 import javax.swing.JRootPane;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
-import javax.swing.text.JTextComponent;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
@@ -38,6 +34,8 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.events.WorldsFetch;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.input.KeyListener;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -50,7 +48,7 @@ import org.slf4j.LoggerFactory;
 	description = "A hotkey-driven, searchable list of commands: jump to any side panel, look up worlds, open plugin settings",
 	tags = {"command", "palette", "sidebar", "panel", "hotkey", "keyboard", "search", "navigation"}
 )
-public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, PalettePanel.Listener
+public class CommandPalettePlugin extends Plugin implements KeyListener, PalettePanel.Listener
 {
 	private static final Logger log = LoggerFactory.getLogger(CommandPalettePlugin.class);
 
@@ -129,6 +127,9 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	private ClientToolbar clientToolbar;
 
 	@Inject
+	private KeyManager keyManager;
+
+	@Inject
 	private ChatMessageManager chatMessageManager;
 
 	private PalettePanel panel;
@@ -152,8 +153,6 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	@Override
 	protected void startUp()
 	{
-		// Not the KeyManager: that only hears keys pressed on the game, and the palette should also open from a
-		// side panel, and close from its own search field
 		// Nothing saved at all means a first install
 		if (config.lastSeenVersion().isEmpty()
 			&& configManager.getConfigurationKeys(CommandPaletteConfig.GROUP + ".").isEmpty())
@@ -162,7 +161,8 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 				NEWS_VERSION);
 			welcomePending = true;
 		}
-		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
+		// Only keys pressed on the game reach this: the palette's own search closes it on the hotkey itself
+		keyManager.registerKeyListener(this);
 		eventBus.register(sessionCommands);
 		// a hop takes a few game ticks to carry out
 		eventBus.register(worldHopper);
@@ -312,7 +312,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	 */
 	static String welcome(String keys)
 	{
-		return "Command Palette: press " + (keys == null ? "its hotkey" : keys) + " anywhere in the client to open"
+		return "Command Palette: press " + (keys == null ? "its hotkey" : keys) + " on the game to open"
 			+ " a side panel, a plugin's settings or a world by typing its name. Type help to see the rest.";
 	}
 
@@ -330,7 +330,7 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	@Override
 	protected void shutDown()
 	{
-		KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(this);
+		keyManager.unregisterKeyListener(this);
 		eventBus.unregister(sessionCommands);
 		eventBus.unregister(worldHopper);
 		eventBus.unregister(variables);
@@ -356,44 +356,62 @@ public class CommandPalettePlugin extends Plugin implements KeyEventDispatcher, 
 	}
 
 	@Override
-	public boolean dispatchKeyEvent(KeyEvent e)
+	public boolean isEnabledOnLoginScreen()
 	{
-		if (e.getID() == KeyEvent.KEY_PRESSED)
-		{
-			if (!hotkey.matches(e))
-			{
-				heldKey = NO_KEY;
-				return false;
-			}
-			// Key repeat while the hotkey is held shouldn't flick the palette open and shut
-			if (heldKey != e.getKeyCode() && !toggle(e))
-			{
-				return false;
-			}
-			heldKey = e.getKeyCode();
-			return true;
-		}
+		return true;
+	}
 
-		// Swallow the rest of the hotkey's own keystroke so it isn't typed into the search or the game
+	@Override
+	public void keyPressed(KeyEvent e)
+	{
+		if (!hotkey.matches(e))
+		{
+			heldKey = NO_KEY;
+			return;
+		}
+		// Key repeat while the hotkey is held shouldn't flick the palette open and shut
+		if (heldKey != e.getKeyCode() && !toggle(e))
+		{
+			return;
+		}
+		heldKey = e.getKeyCode();
+		e.consume();
+	}
+
+	// Swallow the rest of the hotkey's own keystroke so it isn't typed into the search or the game
+	@Override
+	public void keyTyped(KeyEvent e)
+	{
 		if (heldKey != NO_KEY)
 		{
-			if (e.getID() == KeyEvent.KEY_RELEASED && e.getKeyCode() == heldKey)
-			{
-				heldKey = NO_KEY;
-				return true;
-			}
-			return e.getID() == KeyEvent.KEY_TYPED;
+			e.consume();
 		}
-		return false;
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e)
+	{
+		if (heldKey != NO_KEY && e.getKeyCode() == heldKey)
+		{
+			heldKey = NO_KEY;
+			e.consume();
+		}
+	}
+
+	/**
+	 * The palette's own search closes it on the hotkey, unless it is a character to type there: without Ctrl/Cmd.
+	 */
+	@Override
+	public boolean isHotkey(KeyEvent e)
+	{
+		return (hotkey.hasModifier() || e.isActionKey()) && hotkey.matches(e);
 	}
 
 	private boolean toggle(KeyEvent e)
 	{
-		// Without Ctrl/Cmd, a hotkey that is also a character belongs to whatever is being typed in: a text field,
-		// the palette's own search included, or the game's chat or an input box of the game's
-		final Component focused = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-		if (!hotkey.hasModifier() && !e.isActionKey()
-			&& (focused instanceof JTextComponent || gameTyping.isGame(focused) && gameTyping.isTyping()))
+		// Without Ctrl/Cmd, a hotkey that is also a character belongs to whatever is being typed in on the game:
+		// the chat, or an input box of the game's
+		if (!hotkey.hasModifier() && !e.isActionKey() && gameTyping.isTyping())
 		{
 			return false;
 		}

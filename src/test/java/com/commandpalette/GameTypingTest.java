@@ -2,7 +2,6 @@ package com.commandpalette;
 
 import java.awt.Canvas;
 import java.lang.reflect.Proxy;
-import javax.swing.JPanel;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
@@ -90,17 +89,9 @@ public class GameTypingTest
 	}
 
 	@Test
-	public void onlyTheGameCanvasIsTheGame()
-	{
-		assertTrue(typing.isGame(canvas));
-		assertFalse(typing.isGame(new JPanel()));
-		assertFalse(typing.isGame(null));
-	}
-
-	@Test
 	public void theWelcomeNamesTheHotkey()
 	{
-		assertEquals("Command Palette: press Cmd+P anywhere in the client to open a side panel, a plugin's settings"
+		assertEquals("Command Palette: press Cmd+P on the game to open a side panel, a plugin's settings"
 			+ " or a world by typing its name. Type help to see the rest.", CommandPalettePlugin.welcome("Cmd+P"));
 		assertTrue(CommandPalettePlugin.welcome(null).startsWith("Command Palette: press its hotkey "));
 	}

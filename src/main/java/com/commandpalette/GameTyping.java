@@ -1,6 +1,5 @@
 package com.commandpalette;
 
-import java.awt.Component;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.InterfaceID;
@@ -41,13 +40,5 @@ class GameTyping
 		}
 		final Widget line = client.getWidget(InterfaceID.Chatbox.INPUT);
 		return line == null || !Text.removeTags(line.getText()).endsWith(PRESS_ENTER_TO_CHAT);
-	}
-
-	/**
-	 * Whether the component is the game, rather than the side panels or another window of the client.
-	 */
-	boolean isGame(Component component)
-	{
-		return component != null && component == client.getCanvas();
 	}
 }

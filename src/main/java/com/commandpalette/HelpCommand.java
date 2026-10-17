@@ -67,7 +67,6 @@ class HelpCommand
 			commands.row("copy", "Copy your world or coordinates (logged in)");
 			commands.row("session", "Time logged in and xp gained (logged in)");
 			commands.row("open my", "Your hiscores and tracker pages (logged in)");
-			commands.row("folder", "Open the screenshots, logs or RuneLite folder");
 		}
 		if (config.pluginCommands())
 		{

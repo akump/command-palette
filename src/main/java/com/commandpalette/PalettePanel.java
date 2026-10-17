@@ -47,6 +47,14 @@ class PalettePanel extends JPanel
 		 * The list grew or shrank, so the panel's preferred size changed.
 		 */
 		void resized();
+
+		/**
+		 * Whether the key closes the palette as the hotkey that opened it.
+		 */
+		default boolean isHotkey(KeyEvent e)
+		{
+			return false;
+		}
 	}
 
 	private static final int WIDTH = 320;
@@ -280,6 +288,12 @@ class PalettePanel extends JPanel
 
 	private void keyPressed(KeyEvent e)
 	{
+		if (listener.isHotkey(e))
+		{
+			listener.cancel();
+			e.consume();
+			return;
+		}
 		switch (e.getKeyCode())
 		{
 			case KeyEvent.VK_DOWN:

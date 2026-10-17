@@ -118,8 +118,8 @@ public interface CommandPaletteConfig extends Config
 	@ConfigItem(
 		keyName = "clientCommands",
 		name = "Client utilities",
-		description = "Take a screenshot, copy your world or coordinates, sum up your session, open your hiscores and"
-			+ " tracker pages, and open the screenshots, logs and RuneLite folders",
+		description = "Take a screenshot, copy your world or coordinates, sum up your session, and open your"
+			+ " hiscores and tracker pages",
 		section = commandsSection,
 		position = 1
 	)

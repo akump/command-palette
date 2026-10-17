@@ -2,7 +2,6 @@ package com.commandpalette;
 
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
-import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -14,13 +13,12 @@ import net.runelite.api.Player;
 import net.runelite.api.clan.ClanChannel;
 import net.runelite.api.clan.ClanID;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.util.ImageCapture;
 import net.runelite.client.util.LinkBrowser;
 
 /**
- * Odds and ends of the client and the logged in player: folders, a screenshot, things worth copying, and the
+ * Odds and ends of the client and the logged in player: a screenshot, things worth copying, and the
  * player's pages on the hiscores and tracking sites.
  */
 class ClientCommands
@@ -62,9 +60,6 @@ class ClientCommands
 			})));
 		}
 		profiles(out);
-		out.add(folder("Open screenshots folder", RuneLite.SCREENSHOT_DIR));
-		out.add(folder("Open logs folder", RuneLite.LOGS_DIR));
-		out.add(folder("Open RuneLite folder", RuneLite.RUNELITE_DIR));
 	}
 
 	// pages about the logged in player, and their group if they are a group ironman
@@ -92,11 +87,6 @@ class ClientCommands
 		// names come from the game with non-breaking spaces
 		final String encoded = URLEncoder.encode(name.replace('\u00A0', ' '), StandardCharsets.UTF_8);
 		return new Command(key, title, detail, Icons.LINK, () -> LinkBrowser.browse(url + encoded));
-	}
-
-	private static Command folder(String title, File directory)
-	{
-		return new Command("client:folder:" + directory.getName(), title, "", Icons.FOLDER, () -> LinkBrowser.open(directory.getAbsolutePath()));
 	}
 
 	// on the client thread

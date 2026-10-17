@@ -47,7 +47,6 @@ public class PalettePreviewTest
 		commands.add(new Command("Copy world", "To clipboard", Icons.CLIPBOARD, () -> {}));
 		commands.add(new Command("Session summary", "Show in chat", Icons.CLOCK, () -> {}));
 		commands.add(new Command("Open my hiscores", "Official", Icons.LINK, () -> {}));
-		commands.add(new Command("Open logs folder", "", Icons.FOLDER, () -> {}));
 		commands.add(new Command("Help", "What to type", Icons.HELP, () -> {}));
 		commands.add(new Command("Loot Tracker", "Turn plugin off", Icons.SWITCH_ON, () -> {}));
 		commands.add(new Command("Twitch", "Turn plugin on", Icons.SWITCH_OFF, () -> {}));

@@ -83,7 +83,6 @@ public class DemoGifTest
 		commands.add(command("copy:coordinates", "Copy coordinates", "To clipboard", Icons.CLIPBOARD));
 		commands.add(command("session", "Session summary", "Show in chat", Icons.CLOCK));
 		commands.add(command("link:hiscores", "Open my hiscores", "Official", Icons.LINK));
-		commands.add(command("folder:screenshots", "Open screenshots folder", "", Icons.FOLDER));
 		for (String plugin : new String[]{"Loot Tracker", "Screen Markers", "Twitch"})
 		{
 			commands.add(command(PluginCommands.SETTINGS_KIND + plugin, plugin, "Open settings", Icons.COG));

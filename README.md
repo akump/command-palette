@@ -6,8 +6,8 @@ A keyboard-driven list of commands for RuneLite. Press a hotkey, type a few lett
 
 ## Using it
 
-Press **Cmd+P** (Mac) or **Ctrl+P** (Windows/Linux) anywhere in the client, including on the login screen and
-while a side panel has the keyboard.
+Press **Cmd+P** (Mac) or **Ctrl+P** (Windows/Linux) while the game has the keyboard, including on the login screen.
+Pressing it again in the palette's search closes it.
 
 The plugin's settings have the key, **Open hotkey**, and whether Cmd or Ctrl has to be held with it, **Require
 Ctrl/Cmd**. Only the key of the hotkey is used, so the same settings work on a Mac and on Windows. If the
@@ -54,7 +54,6 @@ Each group below has a switch in the plugin's settings. All of them start on exc
 | Session summary | Prints how long you have been logged in and the xp gained since, with the top three skills (logged in only) |
 | Open my hiscores / Wise Old Man profile / collection log | Opens your page on the official hiscores, Wise Old Man or TempleOSRS in your browser (logged in only) |
 | Open my group's hiscores | Opens your group's page on the group ironman hiscores (group ironmen only) |
-| Open screenshots / logs / RuneLite folder | Opens that folder in your file manager |
 
 ### Lookups and sums
 
@@ -202,7 +201,7 @@ To keep lines with variables on screen, over the game, with alerts and their his
 | Side panel | On | The [Command Palette panel](#the-side-panel) in the sidebar |
 | **Commands** | | |
 | Side panels | On | A command per side panel, and ones to close the open panel and hide or show the sidebar |
-| Client utilities | On | Screenshots, copying your world or coordinates, the session summary, your hiscores and tracker pages, and the screenshots, logs and RuneLite folders |
+| Client utilities | On | Screenshots, copying your world or coordinates, the session summary, and your hiscores and tracker pages |
 | Lookups and sums | On | Sums, dry streaks, the Grand Exchange's tax, ticks as time, item prices and xp to a level |
 | Plugins on/off | Off | A command per plugin, to turn it on or off |
 | Confirm plugins on/off | On | Ask before turning a plugin on or off |

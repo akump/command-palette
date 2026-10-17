@@ -5,7 +5,6 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
@@ -148,8 +147,24 @@ class CustomPanel extends SideTab
 			}
 		});
 		// Tab moves on, as from a field, not putting one in
-		value.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, null);
-		value.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, null);
+		value.getInputMap().put(KeyStroke.getKeyStroke("TAB"), "next");
+		value.getActionMap().put("next", new AbstractAction()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				value.transferFocus();
+			}
+		});
+		value.getInputMap().put(KeyStroke.getKeyStroke("shift TAB"), "previous");
+		value.getActionMap().put("previous", new AbstractAction()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				value.transferFocusBackward();
+			}
+		});
 		((AbstractDocument) value.getDocument()).setDocumentFilter(new DocumentFilter()
 		{
 			@Override
