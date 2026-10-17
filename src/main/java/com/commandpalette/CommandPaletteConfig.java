@@ -74,7 +74,7 @@ public interface CommandPaletteConfig extends Config
 	)
 	default int recentCount()
 	{
-		return 8;
+		return 5;
 	}
 
 	@ConfigItem(
@@ -189,7 +189,7 @@ public interface CommandPaletteConfig extends Config
 	)
 	default boolean pluginSettingsCommands()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(

@@ -26,7 +26,7 @@ the game's input boxes such as the bank search. While the Key Remapping plugin k
 | `Enter` | Run the selected command |
 | `Esc`, the hotkey again, or clicking elsewhere | Cancel |
 
-The last eight commands you ran are listed first, latest first, in a section of their own: a line sets them
+The last five commands you ran are listed first, latest first, in a section of their own: a line sets them
 apart from the rest and each has a clock at the end of its row. **Recently used count** in the settings changes
 how many, from 1 to 20. The section can be turned off there, and so can the icons. The commands you have
 pinned in the side panel's Pinned tab come next, in a section of their own with a pin at the end of each row;
@@ -197,7 +197,7 @@ To keep lines with variables on screen, over the game, with alerts and their his
 | Open hotkey | `P` | The key that opens the palette. Only the key is used; the modifier comes from the next setting. |
 | Require Ctrl/Cmd | On | Hold Cmd (Mac) or Ctrl (Windows/Linux) with the hotkey, or the Platform Keys plugin's choice when it is on |
 | Recently used first | On | List the commands you ran last first, in a section of their own |
-| Recently used count | 8 | How many of them, from 1 to 20 |
+| Recently used count | 5 | How many of them, from 1 to 20 |
 | Show icons | On | An icon before each command, and a clock after a recently used one or a pin after a pinned one |
 | Side panel | On | The [Command Palette panel](#the-side-panel) in the sidebar |
 | **Commands** | | |
@@ -206,7 +206,7 @@ To keep lines with variables on screen, over the game, with alerts and their his
 | Lookups and sums | On | Sums, dry streaks, the Grand Exchange's tax, ticks as time, item prices and xp to a level |
 | Plugins on/off | Off | A command per plugin, to turn it on or off |
 | Confirm plugins on/off | On | Ask before turning a plugin on or off |
-| Plugin settings | On | A command per plugin with settings, to open them |
+| Plugin settings | Off | A command per plugin with settings, to open them |
 | Wiki search | On | Offer a wiki search for whatever is typed. Starting with `?` searches the wiki either way. |
 | Worlds | On | A command per world, to pick it out in the side panel |
 | Timers | On | `timer 5m herb run`. A running timer can be cancelled either way. |
